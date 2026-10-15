@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'providers/auth_provider.dart';
 import 'providers/timetable_provider.dart';
+import 'screens/auth_screen.dart';
 import 'screens/timetable_studio_screen.dart';
 
 void main() async {
@@ -22,6 +24,9 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(),
+        ),
         ChangeNotifierProvider(
           create: (_) => TimetableProvider(geminiApiKey: geminiApiKey),
         ),
@@ -54,8 +59,22 @@ class AscGenAiApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0F172A),
         useMaterial3: true,
       ),
-      themeMode: ThemeMode.system,
-      home: const TimetableStudioScreen(),
+      themeMode: ThemeMode.dark,
+      home: const AuthGate(),
     );
+  }
+}
+
+/// Dynamic Authentication Gate routing between Glassmorphic Auth and Studio
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (auth.currentUser != null) {
+      return const TimetableStudioScreen();
+    }
+    return const AuthScreen();
   }
 }

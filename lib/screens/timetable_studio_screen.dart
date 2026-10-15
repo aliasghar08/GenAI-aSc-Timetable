@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/timetable_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/timetable_models.dart';
 import '../services/asc_xml_service.dart';
 
@@ -188,6 +189,8 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
             onPressed: () => _exportAscXml(provider),
           ),
           const SizedBox(width: 8),
+          _buildAuthStatusAndLogout(context),
+          const SizedBox(width: 12),
         ],
       ),
       body: isDesktop
@@ -440,6 +443,72 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAuthStatusAndLogout(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final email = auth.currentUser?.email ?? 'Authenticated Admin';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_circle, size: 16, color: Color(0xFFA5B4FC)),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 130),
+                child: Text(
+                  email,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: const Icon(Icons.logout_rounded, color: Color(0xFFF87171), size: 20),
+          tooltip: 'Sign Out Session',
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: const Color(0xFF1E293B),
+                title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+                content: const Text(
+                  'Are you sure you want to end your current session and return to the login screen?',
+                  style: TextStyle(color: Color(0xFFCBD5E1)),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Sign Out'),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              await auth.signOut();
+            }
+          },
+        ),
+      ],
     );
   }
 }
