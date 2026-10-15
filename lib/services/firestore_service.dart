@@ -40,9 +40,9 @@ class FirestoreService {
           batch.delete(docRef);
         }
       }
-      await batch.commit();
+      await batch.commit().timeout(const Duration(seconds: 3));
     } catch (_) {
-      // Allow seamless local operation
+      // Allow seamless local operation without blocking UI
     }
   }
 
@@ -57,7 +57,7 @@ class FirestoreService {
         'teachers': teachers.map((e) => e.toMap()).toList(),
         'subjects': subjects.map((e) => e.toMap()).toList(),
         'classes': classes.map((e) => e.toMap()).toList(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(const Duration(seconds: 3));
     } catch (_) {
       // Local fallback
     }

@@ -105,3 +105,30 @@ class LessonPlacement {
         period: map['period'] is int ? map['period'] : int.tryParse(map['period'].toString()) ?? 1,
       );
 }
+
+class AiScheduleSuggestion {
+  final String id;
+  final String title;
+  final String description;
+  final String rationale;
+  final String category; // 'core_focus', 'teacher_wellness', 'gap_reduction', 'friday_buffer', 'collision_fix', 'optimization'
+  final String badgeText;
+  final String impactText;
+  final List<LessonPlacement> updatedPlacements;
+  final String actionLabel;
+  bool isApplied;
+
+  AiScheduleSuggestion({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.rationale,
+    required this.category,
+    required this.badgeText,
+    required this.impactText,
+    required this.updatedPlacements,
+    this.actionLabel = 'Act Upon This Suggestion',
+    this.isApplied = false,
+  });
+}
+

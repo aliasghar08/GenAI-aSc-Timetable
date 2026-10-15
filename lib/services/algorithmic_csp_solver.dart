@@ -97,6 +97,16 @@ class AlgorithmicCspSolver {
     CspConstraintSpec constraints = const CspConstraintSpec(),
   }) {
     final stopwatch = Stopwatch()..start();
+    if (classes.isEmpty || subjects.isEmpty || teachers.isEmpty) {
+      return CspSolution(
+        placements: currentPlacements,
+        hardConflicts: 0,
+        fitnessScore: 100.0,
+        nodesExplored: 0,
+        executionTimeMs: 0,
+        telemetry: '[CSP Solver] Entity list is empty. No schedule modifications required.',
+      );
+    }
     int nodesExplored = 0;
 
     final days = [1, 2, 3, 4, 5];

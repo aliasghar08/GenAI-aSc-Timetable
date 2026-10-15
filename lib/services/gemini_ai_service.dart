@@ -84,7 +84,7 @@ Return strictly valid JSON:
 
         final response = await _model!.generateContent([
           Content.text(systemPrompt),
-        ]);
+        ]).timeout(const Duration(seconds: 5));
 
         if (response.text != null && response.text!.isNotEmpty) {
           final decoded = jsonDecode(response.text!);
@@ -97,7 +97,7 @@ Return strictly valid JSON:
           };
         }
       } catch (_) {
-        // Fall back to algorithmic explanation if Gemini API is unresponsive
+        // Fall back to algorithmic explanation if Gemini API is unresponsive or times out
       }
     }
 

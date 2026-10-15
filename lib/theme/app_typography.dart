@@ -13,6 +13,7 @@ class AppTypography {
     Color? color,
     double? letterSpacing,
     double? height,
+    FontStyle? fontStyle,
   }) {
     return TextStyle(
       fontFamily: _fontFamily,
@@ -21,6 +22,7 @@ class AppTypography {
       color: color,
       letterSpacing: letterSpacing,
       height: height,
+      fontStyle: fontStyle,
     );
   }
 }
