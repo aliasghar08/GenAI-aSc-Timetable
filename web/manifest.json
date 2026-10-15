@@ -3,10 +3,10 @@
     "short_name": "GenAI aSc",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "GenAI aSc Timetable web and cross-platform application",
-    "orientation": "portrait-primary",
+    "background_color": "#090D16",
+    "theme_color": "#4F46E5",
+    "description": "Next-Gen Autonomous Timetable Studio powered by Gemini & CSP",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

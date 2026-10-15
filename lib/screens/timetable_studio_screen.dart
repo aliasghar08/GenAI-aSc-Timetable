@@ -314,13 +314,11 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
             ),
             child: Row(
               children: [
-                // Studio Branding & Logo
+                // Studio Official App Icon
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                    ),
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
@@ -329,8 +327,18 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                         offset: const Offset(0, 4),
                       ),
                     ],
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1.0,
+                    ),
                   ),
-                  child: const Icon(CupertinoIcons.calendar, color: Colors.white, size: 20),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(9),
+                    child: Image.asset(
+                      'assets/app_icon.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Column(

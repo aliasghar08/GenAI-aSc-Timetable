@@ -260,21 +260,16 @@ class _AuthScreenState extends State<AuthScreen>
   Widget _buildBrandingHeader() {
     return Column(
       children: [
-        // App Icon with subtle glass surround
+        // Official App Icon with subtle glass surround and glow
         Container(
-          width: 72,
-          height: 72,
+          width: 88,
+          height: 88,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.45),
-                blurRadius: 28,
+                color: const Color(0xFF6366F1).withValues(alpha: 0.5),
+                blurRadius: 30,
                 spreadRadius: 2,
                 offset: const Offset(0, 8),
               ),
@@ -284,11 +279,11 @@ class _AuthScreenState extends State<AuthScreen>
               width: 1.5,
             ),
           ),
-          child: const Center(
-            child: Icon(
-              CupertinoIcons.calendar_today,
-              color: Colors.white,
-              size: 34,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(21),
+            child: Image.asset(
+              'assets/app_icon.png',
+              fit: BoxFit.cover,
             ),
           ),
         ),
