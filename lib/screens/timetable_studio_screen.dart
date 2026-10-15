@@ -2,12 +2,12 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import '../core/app_provider.dart';
 import '../models/timetable_models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/timetable_provider.dart';
 import '../services/asc_xml_service.dart';
+import '../theme/app_typography.dart';
 
 /// Next-Gen Autonomous Timetable Studio Screen
 /// Features floating glass widgets, frosted blur layers, ambient lighting orbs,
@@ -103,7 +103,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
               const SizedBox(width: 12),
               Text(
                 'Generated aSc Timetables XML',
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
+                style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
               ),
             ],
           ),
@@ -115,7 +115,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
               children: [
                 Text(
                   'Compliant with official aSc Timetables database XML schema for desktop import:',
-                  style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF94A3B8)),
+                  style: AppTypography.inter(fontSize: 12, color: const Color(0xFF94A3B8)),
                 ),
                 const SizedBox(height: 12),
                 Expanded(
@@ -339,7 +339,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                   children: [
                     Text(
                       'aSc Timetables GenAI Autonomous Studio',
-                      style: GoogleFonts.inter(
+                      style: AppTypography.inter(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                         color: Colors.white,
@@ -347,7 +347,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                     ),
                     Text(
                       'Deterministic CSP Engine • Gemini Reasoning Co-Pilot',
-                      style: GoogleFonts.inter(
+                      style: AppTypography.inter(
                         fontSize: 11,
                         color: const Color(0xFF94A3B8),
                       ),
@@ -541,14 +541,14 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
           const SizedBox(width: 10),
           Text(
             'Target Class:',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFFE2E8F0)),
+            style: AppTypography.inter(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFFE2E8F0)),
           ),
           const SizedBox(width: 12),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               dropdownColor: const Color(0xFF0F172A),
               value: selectedClassId,
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+              style: AppTypography.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
               items: provider.classes
                   .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
                   .toList(),
@@ -571,7 +571,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                 const SizedBox(width: 6),
                 Text(
                   '$currentPlacementsCount Placed Lessons',
-                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF34D399)),
+                  style: AppTypography.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF34D399)),
                 ),
               ],
             ),
@@ -618,7 +618,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                           child: Text(
                             'Period',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12, color: const Color(0xFF94A3B8)),
+                            style: AppTypography.inter(fontWeight: FontWeight.w700, fontSize: 12, color: const Color(0xFF94A3B8)),
                           ),
                         ),
                         ...weekDays.map(
@@ -627,7 +627,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                             child: Text(
                               d,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.white),
+                              style: AppTypography.inter(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.white),
                             ),
                           ),
                         ),
@@ -641,7 +641,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                             alignment: Alignment.center,
                             child: Text(
                               'P$p',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: const Color(0xFF818CF8)),
+                              style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 12, color: const Color(0xFF818CF8)),
                             ),
                           ),
                           for (int d = 1; d <= 5; d++) _buildCell(provider, d, p),
@@ -713,7 +713,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
             subject.shortName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
+            style: AppTypography.inter(
               fontWeight: FontWeight.w700,
               fontSize: 12,
               color: const Color(0xFFE0E7FF),
@@ -724,7 +724,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
             teacher.shortName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
+            style: AppTypography.inter(
               fontSize: 10,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF94A3B8),
@@ -777,14 +777,14 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                   const SizedBox(width: 10),
                   Text(
                     'AI Scheduling Agent',
-                    style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                    style: AppTypography.inter(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
                 'Instruct with human speech; Gemini translates rules into deterministic CSP constraints with 0 collisions.',
-                style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF94A3B8)),
+                style: AppTypography.inter(fontSize: 12, color: const Color(0xFF94A3B8)),
               ),
               const SizedBox(height: 14),
 
@@ -792,10 +792,10 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
               TextField(
                 controller: _promptController,
                 maxLines: 2,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                style: AppTypography.inter(color: Colors.white, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'e.g. Schedule CS for Grade 10-A on Monday Period 1 with Turing. If conflict, move Turing to Tuesday.',
-                  hintStyle: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 12),
+                  hintStyle: AppTypography.inter(color: const Color(0xFF64748B), fontSize: 12),
                   filled: true,
                   fillColor: Colors.black.withValues(alpha: 0.35),
                   contentPadding: const EdgeInsets.all(14),
@@ -814,7 +814,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
               // 4. Floating Quick Directives
               Text(
                 'Quick Algorithmic Directives:',
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFCBD5E1)),
+                style: AppTypography.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFCBD5E1)),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -850,7 +850,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                           const SizedBox(width: 6),
                           Text(
                             qd['label'] as String,
-                            style: GoogleFonts.inter(
+                            style: AppTypography.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -904,7 +904,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                       : const Icon(CupertinoIcons.play_circle_fill, size: 18),
                   label: Text(
                     provider.isAiThinking ? 'Analyzing Constraints with CSP...' : 'Execute Constraint Solver',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white),
+                    style: AppTypography.inter(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white),
                   ),
                 ),
               ),
@@ -917,7 +917,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                   const SizedBox(width: 6),
                   Text(
                     'Agent Diagnostic Output:',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12, color: const Color(0xFFE2E8F0)),
+                    style: AppTypography.inter(fontWeight: FontWeight.w700, fontSize: 12, color: const Color(0xFFE2E8F0)),
                   ),
                 ],
               ),

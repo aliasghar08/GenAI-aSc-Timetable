@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import '../core/app_provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_typography.dart';
 
 /// Premium iOS / macOS Glassmorphic Authentication Screen
 /// Features a 3-phase staggered entrance animation pipeline and ambient lighting orbs.
@@ -109,7 +109,7 @@ class _AuthScreenState extends State<AuthScreen>
               Expanded(
                 child: Text(
                   auth.errorMessage!,
-                  style: GoogleFonts.inter(fontSize: 13, color: Colors.white),
+                  style: AppTypography.inter(fontSize: 13, color: Colors.white),
                 ),
               ),
             ],
@@ -258,7 +258,7 @@ class _AuthScreenState extends State<AuthScreen>
         const SizedBox(height: 20),
         Text(
           'GenAI aSc Timetable',
-          style: GoogleFonts.inter(
+          style: AppTypography.inter(
             fontSize: 26,
             fontWeight: FontWeight.w800,
             color: Colors.white,
@@ -269,7 +269,7 @@ class _AuthScreenState extends State<AuthScreen>
         Text(
           'Next-Gen Educational Scheduling Intelligence',
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
+          style: AppTypography.inter(
             fontSize: 13,
             color: const Color(0xFF94A3B8),
             fontWeight: FontWeight.w400,
@@ -310,7 +310,7 @@ class _AuthScreenState extends State<AuthScreen>
                   children: [
                     Text(
                       auth.isSignInMode ? 'Sign In' : 'Create Account',
-                      style: GoogleFonts.inter(
+                      style: AppTypography.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -328,7 +328,7 @@ class _AuthScreenState extends State<AuthScreen>
                       ),
                       child: Text(
                         auth.isSignInMode ? 'SECURE AUTH' : 'NEW SCHEDULER',
-                        style: GoogleFonts.inter(
+                        style: AppTypography.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFFA5B4FC),
@@ -421,7 +421,7 @@ class _AuthScreenState extends State<AuthScreen>
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: AppTypography.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: const Color(0xFFCBD5E1),
@@ -433,13 +433,13 @@ class _AuthScreenState extends State<AuthScreen>
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
-          style: GoogleFonts.inter(
+          style: AppTypography.inter(
             fontSize: 14,
             color: Colors.white,
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(
+            hintStyle: AppTypography.inter(
               color: const Color(0xFF64748B),
               fontSize: 14,
             ),
@@ -525,7 +525,7 @@ class _AuthScreenState extends State<AuthScreen>
               )
             : Text(
                 title,
-                style: GoogleFonts.inter(
+                style: AppTypography.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -548,7 +548,7 @@ class _AuthScreenState extends State<AuthScreen>
               auth.isSignInMode
                   ? "Don't have an institution account?"
                   : "Already registered with an account?",
-              style: GoogleFonts.inter(
+              style: AppTypography.inter(
                 fontSize: 13,
                 color: const Color(0xFF94A3B8),
               ),
@@ -557,7 +557,7 @@ class _AuthScreenState extends State<AuthScreen>
               onPressed: auth.isLoading ? null : () => auth.toggleMode(),
               child: Text(
                 auth.isSignInMode ? 'Create One' : 'Sign In',
-                style: GoogleFonts.inter(
+                style: AppTypography.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFFA5B4FC),
@@ -580,7 +580,7 @@ class _AuthScreenState extends State<AuthScreen>
             const SizedBox(width: 6),
             Text(
               'End-to-End Encrypted Session • Firebase Identity Platform',
-              style: GoogleFonts.inter(
+              style: AppTypography.inter(
                 fontSize: 11,
                 color: const Color(0xFF64748B),
                 fontWeight: FontWeight.w500,

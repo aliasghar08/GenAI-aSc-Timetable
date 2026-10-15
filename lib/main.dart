@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
+import 'core/app_provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/timetable_provider.dart';
@@ -21,17 +21,16 @@ void main() async {
     defaultValue: 'YOUR_GEMINI_API_KEY_FALLBACK',
   );
 
+  final authProvider = AuthProvider();
+  final timetableProvider = TimetableProvider(geminiApiKey: geminiApiKey);
+
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => TimetableProvider(geminiApiKey: geminiApiKey),
-        ),
-      ],
-      child: const AscGenAiApp(),
+    AscProvider<AuthProvider>(
+      notifier: authProvider,
+      child: AscProvider<TimetableProvider>(
+        notifier: timetableProvider,
+        child: const AscGenAiApp(),
+      ),
     ),
   );
 }
@@ -56,7 +55,7 @@ class AscGenAiApp extends StatelessWidget {
           seedColor: const Color(0xFF4F46E5),
           brightness: Brightness.dark,
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        scaffoldBackgroundColor: const Color(0xFF090D16),
         useMaterial3: true,
       ),
       themeMode: ThemeMode.dark,

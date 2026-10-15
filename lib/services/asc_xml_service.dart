@@ -1,119 +1,124 @@
-import 'package:xml/xml.dart';
 import '../models/timetable_models.dart';
 
+/// Custom, zero-dependency aSc Timetables XML Engine
+/// Hand-crafted pure Dart serializer and deserializer that eliminates `package:xml`.
 class AscXmlService {
-  /// Converts internal models to standard aSc Timetable XML
+  /// Converts internal domain models to standard aSc Timetables XML specification
   static String exportToAscXml({
     required List<Teacher> teachers,
     required List<Subject> subjects,
     required List<SchoolClass> classes,
     required List<LessonPlacement> placements,
   }) {
-    final builder = XmlBuilder();
-    builder.processing('xml', 'version="1.0" encoding="windows-1250"');
-    builder.element('timetable', nest: () {
-      builder.attribute('importtype', 'database');
+    final buffer = StringBuffer();
+    buffer.writeln('<?xml version="1.0" encoding="windows-1250"?>');
+    buffer.writeln('<timetable importtype="database">');
 
-      // Days and Periods specification
-      builder.element('daysdefs', nest: () {
-        builder.element('daysdef', nest: () {
-          builder.attribute('id', '1');
-          builder.attribute('name', 'Week');
-          builder.attribute('short', 'W');
-          builder.attribute('days', '10000,01000,00100,00010,00001');
-        });
-      });
+    // 1. Days definitions
+    buffer.writeln('  <daysdefs>');
+    buffer.writeln('    <daysdef id="1" name="Week" short="W" days="10000,01000,00100,00010,00001"/>');
+    buffer.writeln('  </daysdefs>');
 
-      builder.element('periods', nest: () {
-        for (int p = 1; p <= 8; p++) {
-          builder.element('period', nest: () {
-            builder.attribute('name', '$p');
-            builder.attribute('short', '$p');
-            builder.attribute('period', '$p');
-            builder.attribute('starttime', '${7 + p}:00');
-            builder.attribute('endtime', '${7 + p}:45');
-          });
-        }
-      });
+    // 2. Periods (1 through 8)
+    buffer.writeln('  <periods>');
+    for (int p = 1; p <= 8; p++) {
+      final start = '${7 + p}:00';
+      final end = '${7 + p}:45';
+      buffer.writeln('    <period name="$p" short="$p" period="$p" starttime="$start" endtime="$end"/>');
+    }
+    buffer.writeln('  </periods>');
 
-      // Teachers
-      builder.element('teachers', nest: () {
-        for (var t in teachers) {
-          builder.element('teacher', nest: () {
-            builder.attribute('id', t.id);
-            builder.attribute('name', t.name);
-            builder.attribute('short', t.shortName);
-          });
-        }
-      });
+    // 3. Teachers
+    buffer.writeln('  <teachers>');
+    for (final t in teachers) {
+      final safeName = _escapeXml(t.name);
+      final safeShort = _escapeXml(t.shortName);
+      buffer.writeln('    <teacher id="${t.id}" name="$safeName" short="$safeShort"/>');
+    }
+    buffer.writeln('  </teachers>');
 
-      // Subjects
-      builder.element('subjects', nest: () {
-        for (var s in subjects) {
-          builder.element('subject', nest: () {
-            builder.attribute('id', s.id);
-            builder.attribute('name', s.name);
-            builder.attribute('short', s.shortName);
-          });
-        }
-      });
+    // 4. Subjects
+    buffer.writeln('  <subjects>');
+    for (final s in subjects) {
+      final safeName = _escapeXml(s.name);
+      final safeShort = _escapeXml(s.shortName);
+      buffer.writeln('    <subject id="${s.id}" name="$safeName" short="$safeShort"/>');
+    }
+    buffer.writeln('  </subjects>');
 
-      // Classes
-      builder.element('classes', nest: () {
-        for (var c in classes) {
-          builder.element('class', nest: () {
-            builder.attribute('id', c.id);
-            builder.attribute('name', c.name);
-            builder.attribute('short', c.shortName);
-          });
-        }
-      });
+    // 5. Classes
+    buffer.writeln('  <classes>');
+    for (final c in classes) {
+      final safeName = _escapeXml(c.name);
+      final safeShort = _escapeXml(c.shortName);
+      buffer.writeln('    <class id="${c.id}" name="$safeName" short="$safeShort"/>');
+    }
+    buffer.writeln('  </classes>');
 
-      // Placed Cards (Lessons)
-      builder.element('cards', nest: () {
-        for (var lp in placements) {
-          builder.element('card', nest: () {
-            builder.attribute('lessonid', lp.id);
-            builder.attribute('day', '${lp.dayOfWeek}');
-            builder.attribute('period', '${lp.period}');
-            builder.attribute('classroomids', '');
-          });
-        }
-      });
-    });
+    // 6. Placed Lesson Cards
+    buffer.writeln('  <cards>');
+    for (final lp in placements) {
+      buffer.writeln('    <card lessonid="${lp.id}" day="${lp.dayOfWeek}" period="${lp.period}" classroomids=""/>');
+    }
+    buffer.writeln('  </cards>');
 
-    return builder.buildDocument().toXmlString(pretty: true);
+    buffer.writeln('</timetable>');
+    return buffer.toString();
   }
 
-  /// Parses native aSc XML into memory
+  /// Parses native aSc XML into memory using lightweight pattern matching
   static Map<String, dynamic> parseAscXml(String xmlString) {
-    final document = XmlDocument.parse(xmlString);
     final List<Teacher> teachers = [];
     final List<Subject> subjects = [];
     final List<SchoolClass> classes = [];
     final List<LessonPlacement> placements = [];
 
-    for (var node in document.findAllElements('teacher')) {
+    // Parse teachers
+    final teacherMatches = RegExp(r'<teacher\s+([^>]+)/>').allMatches(xmlString);
+    for (final m in teacherMatches) {
+      final attrs = _parseAttributes(m.group(1) ?? '');
       teachers.add(Teacher(
-        id: node.getAttribute('id') ?? '',
-        name: node.getAttribute('name') ?? '',
-        shortName: node.getAttribute('short') ?? '',
+        id: attrs['id'] ?? '',
+        name: attrs['name'] ?? '',
+        shortName: attrs['short'] ?? '',
       ));
     }
 
-    for (var node in document.findAllElements('subject')) {
+    // Parse subjects
+    final subjectMatches = RegExp(r'<subject\s+([^>]+)/>').allMatches(xmlString);
+    for (final m in subjectMatches) {
+      final attrs = _parseAttributes(m.group(1) ?? '');
       subjects.add(Subject(
-        id: node.getAttribute('id') ?? '',
-        name: node.getAttribute('name') ?? '',
-        shortName: node.getAttribute('short') ?? '',
+        id: attrs['id'] ?? '',
+        name: attrs['name'] ?? '',
+        shortName: attrs['short'] ?? '',
       ));
     }
 
-    for (var node in document.findAllElements('class')) {
+    // Parse classes
+    final classMatches = RegExp(r'<class\s+([^>]+)/>').allMatches(xmlString);
+    for (final m in classMatches) {
+      final attrs = _parseAttributes(m.group(1) ?? '');
       classes.add(SchoolClass(
-        id: node.getAttribute('id') ?? '',
-        name: node.getAttribute('name') ?? '',
-        shortName: node.getAttribute('short') ?? '',
+        id: attrs['id'] ?? '',
+        name: attrs['name'] ?? '',
+        shortName: attrs['short'] ?? '',
+      ));
+    }
+
+    // Parse placed cards
+    final cardMatches = RegExp(r'<card\s+([^>]+)/>').allMatches(xmlString);
+    for (final m in cardMatches) {
+      final attrs = _parseAttributes(m.group(1) ?? '');
+      final day = int.tryParse(attrs['day'] ?? '1') ?? 1;
+      final period = int.tryParse(attrs['period'] ?? '1') ?? 1;
+      placements.add(LessonPlacement(
+        id: attrs['lessonid'] ?? '',
+        classId: '',
+        subjectId: '',
+        teacherId: '',
+        dayOfWeek: day,
+        period: period,
       ));
     }
 
@@ -123,5 +128,27 @@ class AscXmlService {
       'classes': classes,
       'placements': placements,
     };
+  }
+
+  static String _escapeXml(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+  }
+
+  static Map<String, String> _parseAttributes(String attrString) {
+    final Map<String, String> map = {};
+    final regex = RegExp(r'(\w+)\s*=\s*"([^"]*)"');
+    for (final match in regex.allMatches(attrString)) {
+      final key = match.group(1);
+      final val = match.group(2);
+      if (key != null && val != null) {
+        map[key] = val;
+      }
+    }
+    return map;
   }
 }
