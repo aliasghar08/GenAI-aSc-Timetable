@@ -91,6 +91,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
       subjects: provider.subjects,
       classes: provider.classes,
       placements: provider.placements,
+      constraints: provider.constraints,
     );
 
     showDialog(
@@ -417,6 +418,62 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                 ),
                 const SizedBox(width: 8),
 
+                // PDF Page 1: The NLP Bridge: Natural Language to Strict Constraints
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6).withValues(alpha: 0.18),
+                    foregroundColor: const Color(0xFFC4B5FD),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
+                    ),
+                  ),
+                  onPressed: () => _showNlpBridgeModal(provider),
+                  icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 14),
+                  label: const Text('NLP aSc Bridge', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 8),
+
+                // PDF Page 2: Negotiating Deadlocks: The AI Resolver
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: provider.isDeadlockActive
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.25)
+                        : Colors.white.withValues(alpha: 0.08),
+                    foregroundColor: provider.isDeadlockActive ? const Color(0xFFFCA5A5) : Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: provider.isDeadlockActive ? const Color(0xFFEF4444) : Colors.white.withValues(alpha: 0.18)),
+                    ),
+                  ),
+                  onPressed: () => _showDeadlockResolverModal(provider),
+                  icon: Icon(provider.isDeadlockActive ? CupertinoIcons.exclamationmark_triangle_fill : CupertinoIcons.tuningfork, size: 14),
+                  label: Text(provider.isDeadlockActive ? 'Deadlock (98%)!' : 'Deadlock Resolver', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 8),
+
+                // PDF Page 4: Beyond Planning: The AI Substitution Agent
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.18),
+                    foregroundColor: const Color(0xFF6EE7B7),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: 0.35)),
+                    ),
+                  ),
+                  onPressed: () => _showAiSubstitutionAgentModal(provider),
+                  icon: const Icon(CupertinoIcons.person_2_alt, size: 14),
+                  label: const Text('AI Substitutions', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 8),
+
                 // Manage Real School Data / Faculty & Classes
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -555,6 +612,18 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // PDF Page 2: Live Deadlock Negotiation Banner
+              if (provider.isDeadlockActive) ...[
+                _buildInlineDeadlockBanner(provider),
+                const SizedBox(height: 10),
+              ],
+
+              // PDF Page 3: Realtime Collaborative Generation Lock
+              if (provider.generationLock.status == 'running') ...[
+                _buildCollaborativeLockBanner(provider),
+                const SizedBox(height: 10),
+              ],
+
               // View & Filter Bar (Class View vs Teacher View vs Timings Schedule)
               _buildArrangerToolbar(provider),
               const SizedBox(height: 10),
@@ -2558,6 +2627,908 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // =========================================================================
+  // PDF PAGE 2: Live Deadlock Negotiation Inline Banner & Modal
+  // =========================================================================
+
+  Widget _buildInlineDeadlockBanner(TimetableProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFEF4444).withValues(alpha: 0.25),
+            const Color(0xFFDC2626).withValues(alpha: 0.12),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(CupertinoIcons.exclamationmark_triangle_fill, color: Color(0xFFFCA5A5), size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'AI Resolver Deadlock: Process Halted at 98%',
+                      style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFFFCA5A5)),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Science Lab Bottleneck', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Both Mrs. Adams & Mr. Clark scheduled simultaneously on Wednesday Period 3 in Science Lab A.',
+                  style: AppTypography.inter(fontSize: 11, color: const Color(0xFFE2E8F0)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white.withValues(alpha: 0.12),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => provider.resolveDeadlock(1),
+            child: const Text('Option 1: Thu P1', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 6),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              provider.resolveDeadlock(2);
+              _showToast('Accepted Option 2: Reassigned to Room 204. Schedule 100% complete!');
+            },
+            child: const Text('Accept Option 2 (Room 204)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollaborativeLockBanner(TimetableProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Realtime Generation Lock (${provider.generationLock.progress}%): Locked by ${provider.generationLock.lockedBy}. Streaming AI solver logs...',
+              style: AppTypography.inter(fontSize: 11, color: const Color(0xFFBAE6FD), fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text(
+            provider.generationLock.latestAiLog ?? '',
+            style: const TextStyle(fontSize: 10, color: Colors.white70, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // PDF PAGE 1: The NLP Bridge Modal: Natural Language to Strict Constraints
+  // =========================================================================
+
+  void _showNlpBridgeModal(TimetableProvider provider) {
+    final controller = TextEditingController(
+      text: 'Mr. Davis is a part-time teacher. He cannot teach on Friday mornings, and he needs Thursday off entirely.',
+    );
+    Map<String, dynamic>? result = provider.parseAndApplyNlpConstraint(controller.text);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.95),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(CupertinoIcons.chat_bubble_2_fill, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '1. The NLP Bridge: Natural Language to Strict Constraints',
+                        style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                      ),
+                      Text(
+                        'LLM translates human requests into standardized JSON and proprietary aSc XML (.roz or .xml)',
+                        style: AppTypography.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 720,
+                height: 480,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Select Real-World Architectural Examples from PDF:', style: AppTypography.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFFA5B4FC))),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        ActionChip(
+                          avatar: const Icon(CupertinoIcons.person_badge_minus_fill, size: 14, color: Color(0xFF8B5CF6)),
+                          label: const Text('Example A: Teacher Unavailability (Mr. Davis)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
+                          onPressed: () {
+                            setModalState(() {
+                              controller.text = 'Mr. Davis is a part-time teacher. He cannot teach on Friday mornings, and he needs Thursday off entirely.';
+                              result = provider.parseAndApplyNlpConstraint(controller.text);
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ActionChip(
+                          avatar: const Icon(CupertinoIcons.calendar_today, size: 14, color: Color(0xFF38BDF8)),
+                          label: const Text('Example B: Subject Distribution (Grade 10 Math)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
+                          onPressed: () {
+                            setModalState(() {
+                              controller.text = "Grade 10 Math should be spread out. They can't have two math classes on the same day.";
+                              result = provider.parseAndApplyNlpConstraint(controller.text);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: controller,
+                      maxLines: 2,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.black.withValues(alpha: 0.35),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        hintText: 'Type constraint rule in natural language...',
+                        hintStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          result = provider.parseAndApplyNlpConstraint(val);
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    if (result != null) ...[
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Left: Input Prompt & JSON Structure
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(color: const Color(0xFF6366F1).withValues(alpha: 0.25), borderRadius: BorderRadius.circular(6)),
+                                      child: const Text('Input Admin Prompt & JSON Payload', style: TextStyle(fontSize: 10, color: Color(0xFFA5B4FC), fontWeight: FontWeight.bold)),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text('"${controller.text}"', style: const TextStyle(color: Colors.white70, fontSize: 11, fontStyle: FontStyle.italic)),
+                                    const Divider(color: Colors.white12, height: 16),
+                                    const Text('Standardized Transpiler JSON:', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600)),
+                                    const SizedBox(height: 4),
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        child: Text(
+                                          result!['jsonPayload'].toString(),
+                                          style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Color(0xFF38BDF8)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // Right: Output Generated aSc XML
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.25), borderRadius: BorderRadius.circular(6)),
+                                      child: const Text('Output Generated aSc XML', style: TextStyle(fontSize: 10, color: Color(0xFF6EE7B7), fontWeight: FontWeight.bold)),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        child: Text(
+                                          result!['generatedXml'] ?? '',
+                                          style: const TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 11,
+                                            color: Color(0xFFFDE047),
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      result!['summary'] ?? '',
+                                      style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    provider.parseAndApplyNlpConstraint(controller.text);
+                    Navigator.pop(ctx);
+                    _showToast('Transpiled & Saved Constraint to Firebase & aSc XML!');
+                  },
+                  icon: const Icon(CupertinoIcons.checkmark_alt, size: 14),
+                  label: const Text('Commit Constraint to Firebase'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // =========================================================================
+  // PDF PAGE 2: Negotiating Deadlocks: The AI Resolver Modal
+  // =========================================================================
+
+  void _showDeadlockResolverModal(TimetableProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final isHalted = provider.isDeadlockActive;
+
+          return BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.95),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEF4444), Color(0xFFF97316)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(CupertinoIcons.tuningfork, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '2. Negotiating Deadlocks: The AI Resolver',
+                        style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                      ),
+                      Text(
+                        'Analyzes aSc engine errors, cross-references Firebase constraints, and proposes human-readable compromises.',
+                        style: AppTypography.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 720,
+                height: 480,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Diagram row from PDF Page 2
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildFlowStep('ASC Engine Fails', const Color(0xFFEF4444)),
+                          const Icon(CupertinoIcons.arrow_right, size: 14, color: Colors.white38),
+                          _buildFlowStep('AI Reads XML Log & Firebase Constraints', const Color(0xFF8B5CF6)),
+                          const Icon(CupertinoIcons.arrow_right, size: 14, color: Colors.white38),
+                          _buildFlowStep('AI Proposes Compromise\n(e.g., "Relax Room 101 constraint")', const Color(0xFF10B981)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Trigger / Status Bar
+                    Row(
+                      children: [
+                        Text('Real-World Scenario: The Science Lab Bottleneck', style: AppTypography.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const Spacer(),
+                        if (!isHalted)
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                              foregroundColor: const Color(0xFFFCA5A5),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () {
+                              setModalState(() {
+                                provider.triggerScienceLabDeadlock();
+                              });
+                            },
+                            icon: const Icon(CupertinoIcons.play_circle_fill, size: 14),
+                            label: const Text('Simulate 98% Deadlock', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFFEF4444), borderRadius: BorderRadius.circular(8)),
+                            child: const Text('STATUS: HALTED AT 98%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Deadlock Scenario Card
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: isHalted ? const Color(0xFFEF4444).withValues(alpha: 0.4) : Colors.white12),
+                        ),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'AI Generation Agent Statement:',
+                                style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 12, color: const Color(0xFF38BDF8)),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '"I encountered a deadlock preventing the schedule from completing. Both Mrs. Adams and Mr. Clark are scheduled to teach Chemistry simultaneously on Wednesday period 3, but only Science Lab A is equipped for 11th-grade experiments."',
+                                style: const TextStyle(fontSize: 12, color: Colors.white, fontStyle: FontStyle.italic, height: 1.4),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Proposed Solutions:',
+                                style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 12, color: const Color(0xFFA5B4FC)),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Option 1
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('1. Move Mr. Clark\'s class to Thursday period 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                                          const SizedBox(height: 2),
+                                          const Text('(Requires overriding his "No early mornings" soft constraint).', style: TextStyle(fontSize: 11, color: Colors.white60)),
+                                        ],
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1), foregroundColor: Colors.white),
+                                      onPressed: () {
+                                        provider.resolveDeadlock(1);
+                                        Navigator.pop(ctx);
+                                        _showToast('Accepted Option 1: Moved Mr. Clark to Thursday Period 1.');
+                                      },
+                                      child: const Text('Accept Option 1', style: TextStyle(fontSize: 11)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Option 2 (The one from PDF)
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.35)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('2. Allow Mrs. Adams to teach in standard Classroom 204', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF6EE7B7))),
+                                          const SizedBox(height: 2),
+                                          const Text('Drops strict room requirement for this specific session, regenerates XML, and reaches 100% convergence.', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                                        ],
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white),
+                                      onPressed: () {
+                                        provider.resolveDeadlock(2);
+                                        Navigator.pop(ctx);
+                                        _showToast('The administrator clicks "Accept Option 2." The system updates Firebase, drops strict room requirement, and triggers aSc solver (100% success)!');
+                                      },
+                                      child: const Text('Accept Option 2 (PDF)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFlowStep(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+
+  // =========================================================================
+  // PDF PAGE 4: The AI Substitution Agent Modal ("The 7:00 AM Call-In")
+  // =========================================================================
+
+  void _showAiSubstitutionAgentModal(TimetableProvider provider) {
+    String absentTeacherId = 'T6_Reynolds'; // Mr. Reynolds
+    int dayOfWeek = 2; // Tuesday
+    int period = 2; // Period 2
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final eval = provider.evaluateSubstitutionCandidates(
+            absentTeacherId: absentTeacherId,
+            dayOfWeek: dayOfWeek,
+            period: period,
+          );
+
+          final Teacher? topPick = eval['topPick'] as Teacher?;
+          final String topPickRationale = eval['topPickRationale'] as String? ?? '';
+          final Teacher? backup = eval['backup'] as Teacher?;
+          final String backupRationale = eval['backupRationale'] as String? ?? '';
+
+          return BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.95),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(CupertinoIcons.person_2_alt, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '4. Beyond Planning: The AI Substitution Agent',
+                        style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                      ),
+                      Text(
+                        'Real-World Scenario: "The 7:00 AM Call-In" (Optimized operational decisions via Firestore)',
+                        style: AppTypography.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 740,
+                height: 500,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Scenario callout
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(CupertinoIcons.clock_fill, color: Color(0xFFF59E0B), size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'At 7:00 AM on a Tuesday, Mr. Reynolds (History) marks himself sick. The AI immediately analyzes the day\'s schedule and finds his Period 2 Grade 9 History class requires cover.',
+                              style: const TextStyle(fontSize: 11, color: Colors.white, height: 1.3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Controls row
+                    Row(
+                      children: [
+                        const Text('Absent Teacher:', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        DropdownButton<String>(
+                          value: absentTeacherId,
+                          dropdownColor: const Color(0xFF1E293B),
+                          underline: const SizedBox(),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          items: provider.teachers.map((t) {
+                            return DropdownMenuItem(value: t.id, child: Text('${t.name} (${t.subjects.firstOrNull ?? ''})'));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => absentTeacherId = val);
+                          },
+                        ),
+                        const SizedBox(width: 16),
+                        const Text('Day:', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 6),
+                        DropdownButton<int>(
+                          value: dayOfWeek,
+                          dropdownColor: const Color(0xFF1E293B),
+                          underline: const SizedBox(),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          items: const [
+                            DropdownMenuItem(value: 1, child: Text('Monday')),
+                            DropdownMenuItem(value: 2, child: Text('Tuesday (7:00 AM)')),
+                            DropdownMenuItem(value: 3, child: Text('Wednesday')),
+                            DropdownMenuItem(value: 4, child: Text('Thursday')),
+                            DropdownMenuItem(value: 5, child: Text('Friday')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => dayOfWeek = val);
+                          },
+                        ),
+                        const SizedBox(width: 16),
+                        const Text('Period:', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 6),
+                        DropdownButton<int>(
+                          value: period,
+                          dropdownColor: const Color(0xFF1E293B),
+                          underline: const SizedBox(),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          items: List.generate(8, (i) => i + 1).map((p) {
+                            return DropdownMenuItem(value: p, child: Text('Period $p'));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => period = val);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Split Matrix & Recommendation View
+                    Expanded(
+                      child: Row(
+                        children: [
+                          // Left: AI Decision Matrix (from PDF Page 4)
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(color: const Color(0xFF6366F1).withValues(alpha: 0.25), borderRadius: BorderRadius.circular(6)),
+                                    child: const Text('AI Decision Matrix (PDF)', style: TextStyle(fontSize: 10, color: Color(0xFFA5B4FC), fontWeight: FontWeight.bold)),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildMatrixCheckItem('1. Querying Firestore for Period $period schedule.', true),
+                                  _buildMatrixCheckItem('2. Finding all teachers with Period $period free.', true),
+                                  _buildMatrixCheckItem('3. Filtering out teachers who already maxed out their daily teaching load.', true),
+                                  _buildMatrixCheckItem('4. Cross-referencing subject tags (History/Humanities).', true),
+                                  const Spacer(),
+                                  Text(
+                                    '${eval['eligibleCandidatesCount']} faculty eligible under active collective contract load.',
+                                    style: const TextStyle(fontSize: 10, color: Color(0xFF38BDF8), fontStyle: FontStyle.italic),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Right: AI Recommendation to Principal
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.25), borderRadius: BorderRadius.circular(6)),
+                                    child: const Text('AI Recommendation to Principal', style: TextStyle(fontSize: 10, color: Color(0xFF6EE7B7), fontWeight: FontWeight.bold)),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '"Mr. Reynolds is absent. His Period $period Grade 9 History class requires cover."',
+                                    style: const TextStyle(fontSize: 11, color: Colors.white, fontStyle: FontStyle.italic),
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // Top Pick Card
+                                  if (topPick != null)
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10)),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(CupertinoIcons.star_fill, size: 12, color: Color(0xFFF59E0B)),
+                                              const SizedBox(width: 5),
+                                              Text('Top Pick: ${topPick.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF6EE7B7))),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(topPickRationale, style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                                        ],
+                                      ),
+                                    ),
+                                  const SizedBox(height: 8),
+
+                                  // Backup Card
+                                  if (backup != null)
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(CupertinoIcons.shield_fill, size: 12, color: Color(0xFF38BDF8)),
+                                              const SizedBox(width: 5),
+                                              Text('Backup: ${backup.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white)),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(backupRationale, style: const TextStyle(fontSize: 10, color: Colors.white60)),
+                                        ],
+                                      ),
+                                    ),
+
+                                  const Spacer(),
+                                  if (topPick != null)
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: FilledButton.icon(
+                                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                                        onPressed: () async {
+                                          await provider.assignSubstitution(
+                                            absentTeacherId: absentTeacherId,
+                                            substituteTeacherId: topPick.id,
+                                            dayOfWeek: dayOfWeek,
+                                            period: period,
+                                            date: '2026-10-20',
+                                            reason: 'Sick leave call-in at 7:00 AM',
+                                          );
+                                          if (ctx.mounted) {
+                                            Navigator.pop(ctx);
+                                            _showToast('Assigned ${topPick.name}! Written to /daily_overrides/2026-10-20/ in Firestore. Push notification dispatched.');
+                                          }
+                                        },
+                                        icon: const Icon(CupertinoIcons.checkmark_shield_fill, size: 14),
+                                        label: Text('Assign ${topPick.name} (Write to /daily_overrides/)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMatrixCheckItem(String title, bool isChecked) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isChecked ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+            color: isChecked ? const Color(0xFF10B981) : Colors.white38,
+            size: 14,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                color: isChecked ? Colors.white : Colors.white60,
+                fontWeight: isChecked ? FontWeight.w500 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

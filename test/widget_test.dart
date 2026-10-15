@@ -161,4 +161,170 @@ void main() {
     suggestion.isApplied = true;
     expect(suggestion.isApplied, isTrue);
   });
+
+  test('PDF Page 1 Conformance: The NLP Bridge & XML Schema Specification', () {
+    // 1. Test teacher timeoff bitmask XML export
+    final teachers = [
+      Teacher(
+        id: 'T14_Davis',
+        name: 'Mr. Davis',
+        shortName: 'MD',
+        subjects: ['Mathematics'],
+        maxHours: 15,
+        timeoffDef: '11111,11111,11111,00000,00111', // Thursday all 0s, Friday morning 0s
+      ),
+    ];
+
+    // 2. Test MaxCardsPerDay constraint XML export
+    final constraints = [
+      AcademicConstraint(
+        id: 'R_Math_Dist',
+        target: 'C10_Grade10',
+        type: 'MaxCardsPerDay',
+        value: '1',
+        weight: '100%',
+        subjectId: 'S04_Math',
+        classId: 'C10_Grade10',
+        strictness: 'Hard',
+      ),
+    ];
+
+    final xml = AscXmlService.exportToAscXml(
+      teachers: teachers,
+      subjects: [Subject(id: 'S04_Math', name: 'Mathematics', shortName: 'MATH')],
+      classes: [SchoolClass(id: 'C10_Grade10', name: 'Grade 10', shortName: '10')],
+      placements: [],
+      constraints: constraints,
+    );
+
+    // Verify exact aSc XML tag signatures from PDF Page 1
+    expect(xml, contains('<timeoff teacherid="T14_Davis" def="11111,11111,11111,00000,00111"/>'));
+    expect(xml, contains('<constraint type="MaxCardsPerDay" subjectid="S04_Math" classid="C10_Grade10" value="1" weight="100%"/>'));
+
+    // Verify round-trip parsing
+    final parsed = AscXmlService.parseAscXml(xml);
+    final parsedTeachers = parsed['teachers'] as List<Teacher>;
+    final parsedConstraints = parsed['constraints'] as List<AcademicConstraint>;
+
+    expect(parsedTeachers.length, equals(1));
+    expect(parsedTeachers.first.timeoffDef, equals('11111,11111,11111,00000,00111'));
+    expect(parsedConstraints.length, equals(1));
+    expect(parsedConstraints.first.type, equals('MaxCardsPerDay'));
+    expect(parsedConstraints.first.subjectId, equals('S04_Math'));
+    expect(parsedConstraints.first.classId, equals('C10_Grade10'));
+    expect(parsedConstraints.first.weight, equals('100%'));
+  });
+
+  test('PDF Page 2 Conformance: Negotiating Deadlocks (The Science Lab Bottleneck)', () {
+    final deadlock = DeadlockScenario(
+      id: 'deadlock_sci_lab',
+      title: 'The Science Lab Bottleneck',
+      description: 'I encountered a deadlock preventing the schedule from completing. Both Mrs. Adams and Mr. Clark are scheduled to teach Chemistry simultaneously on Wednesday period 3, but only Science Lab A is equipped for 11th-grade experiments.',
+      haltPercentage: 98,
+      affectedEntities: ['Mrs. Sarah Adams (T8_Adams)', 'Mr. Jonathan Clark (T9_Clark)', 'Science Lab A'],
+      proposedSolutions: [
+        DeadlockSolution(
+          optionNumber: 1,
+          title: 'Option 1: Shift to Thursday Period 1',
+          description: "Move Mr. Clark's class to Thursday period 1 (Requires overriding his 'No early mornings' soft constraint).",
+          impactNote: 'Overrides soft faculty preference while keeping specialized lab room.',
+          actionType: 'MOVE_PERIOD',
+          payload: {'teacherId': 'T9_Clark', 'targetDay': 4, 'targetPeriod': 1},
+        ),
+        DeadlockSolution(
+          optionNumber: 2,
+          title: 'Option 2: Reassign to Classroom 204',
+          description: 'Allow Mrs. Adams to teach this specific session in standard Classroom 204.',
+          impactNote: 'Relaxes strict room requirement for this single session, resulting in 100% solver convergence.',
+          actionType: 'RELAX_ROOM_CONSTRAINT',
+          payload: {'teacherId': 'T8_Adams', 'room': 'Classroom 204'},
+        ),
+      ],
+    );
+
+    expect(deadlock.haltPercentage, equals(98));
+    expect(deadlock.proposedSolutions.length, equals(2));
+    expect(deadlock.proposedSolutions[1].actionType, equals('RELAX_ROOM_CONSTRAINT'));
+    expect(deadlock.proposedSolutions[1].payload['room'], equals('Classroom 204'));
+  });
+
+  test('PDF Page 3 Conformance: Scalable State & Realtime Database Generation Lock', () {
+    // 1. /teachers/T_01 { name: "Sarah Connor", subjects: ["Math", "Physics"], max_hours: 20 }
+    final teacher = Teacher(
+      id: 'T_01',
+      name: 'Sarah Connor',
+      shortName: 'SC',
+      subjects: ['Math', 'Physics'],
+      maxHours: 20,
+    );
+    final tMap = teacher.toMap();
+    expect(tMap['name'], equals('Sarah Connor'));
+    expect(tMap['subjects'], equals(['Math', 'Physics']));
+    expect(tMap['max_hours'], equals(20));
+
+    // 2. /classes/C_10A { name: "Grade 10A", size: 28, room_pref: "Main_Block" }
+    final schoolClass = SchoolClass(
+      id: 'C_10A',
+      name: 'Grade 10A',
+      shortName: '10A',
+      size: 28,
+      roomPref: 'Main_Block',
+    );
+    final cMap = schoolClass.toMap();
+    expect(cMap['name'], equals('Grade 10A'));
+    expect(cMap['size'], equals(28));
+    expect(cMap['room_pref'], equals('Main_Block'));
+
+    // 3. /constraints/R_05 { target: "C_10A", type: "MaxGaps", value: 1, strictness: "Soft" }
+    final constraint = AcademicConstraint(
+      id: 'R_05',
+      target: 'C_10A',
+      type: 'MaxGaps',
+      value: '1',
+      strictness: 'Soft',
+    );
+    final rMap = constraint.toMap();
+    expect(rMap['target'], equals('C_10A'));
+    expect(rMap['type'], equals('MaxGaps'));
+    expect(rMap['strictness'], equals('Soft'));
+
+    // 4. /live/generation { status: "running", progress: 84, locked_by: "Admin_Steve" }
+    final lock = GenerationLock(
+      status: 'running',
+      progress: 84,
+      lockedBy: 'Admin_Steve',
+      latestAiLog: 'Permuting teacher matrices...',
+    );
+    final lMap = lock.toMap();
+    expect(lMap['status'], equals('running'));
+    expect(lMap['progress'], equals(84));
+    expect(lMap['locked_by'], equals('Admin_Steve'));
+  });
+
+  test('PDF Page 4 Conformance: The AI Substitution Agent & /daily_overrides/ Collection', () {
+    // Models The 7:00 AM Call-In workflow
+    final override = SubstitutionRecord(
+      id: 'sub_test_1',
+      date: '2026-10-20',
+      period: 2,
+      absentTeacherId: 'T6_Reynolds',
+      substituteTeacherId: 'T5_Vance',
+      classId: 'C09_Grade9',
+      subjectId: 'S03_Hist',
+      reason: 'Mr. Reynolds marked sick at 7:00 AM. Mrs. Vance assigned cover (Humanities specialist).',
+      timestamp: DateTime.now(),
+      status: 'Assigned & Notified',
+    );
+
+    final map = override.toMap();
+    expect(map['date'], equals('2026-10-20'));
+    expect(map['period'], equals(2));
+    expect(map['absentTeacherId'], equals('T6_Reynolds'));
+    expect(map['substituteTeacherId'], equals('T5_Vance'));
+    expect(map['status'], equals('Assigned & Notified'));
+
+    final restored = SubstitutionRecord.fromMap(map);
+    expect(restored.substituteTeacherId, equals('T5_Vance'));
+    expect(restored.reason, contains('Mrs. Vance assigned cover'));
+  });
 }

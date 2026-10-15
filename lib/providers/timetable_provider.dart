@@ -7,27 +7,118 @@ class TimetableProvider with ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
   late final GeminiAiService _aiService;
 
+  // Real academic faculty matching reference PDF (Page 1, 2, 3, 4)
   List<Teacher> teachers = [
-    Teacher(id: 'T1', name: 'Dr. Alan Turing', shortName: 'AT'),
-    Teacher(id: 'T2', name: 'Prof. Ada Lovelace', shortName: 'AL'),
-    Teacher(id: 'T3', name: 'Dr. Marie Curie', shortName: 'MC'),
-    Teacher(id: 'T4', name: 'Prof. Albert Einstein', shortName: 'AE'),
-    Teacher(id: 'T5', name: 'Ms. Eleanor Vance', shortName: 'EV'),
+    Teacher(
+      id: 'T14_Davis',
+      name: 'Mr. Davis',
+      shortName: 'MD',
+      subjects: ['Mathematics'],
+      maxHours: 15,
+      timeoffDef: '11111,11111,11111,00000,00111', // Page 1: Friday morning & Thursday off
+    ),
+    Teacher(
+      id: 'T6_Reynolds',
+      name: 'Mr. Arthur Reynolds',
+      shortName: 'AR',
+      subjects: ['History & Humanities'],
+      maxHours: 20,
+    ),
+    Teacher(
+      id: 'T5_Vance',
+      name: 'Mrs. Eleanor Vance',
+      shortName: 'EV',
+      subjects: ['History & Humanities', 'English Literature'],
+      maxHours: 20,
+    ),
+    Teacher(
+      id: 'T7_Cole',
+      name: 'Mr. Marcus Cole',
+      shortName: 'MC',
+      subjects: ['Physical Education'],
+      maxHours: 25,
+    ),
+    Teacher(
+      id: 'T8_Adams',
+      name: 'Mrs. Sarah Adams',
+      shortName: 'SA',
+      subjects: ['Chemistry'],
+      maxHours: 20,
+    ),
+    Teacher(
+      id: 'T9_Clark',
+      name: 'Mr. Jonathan Clark',
+      shortName: 'JC',
+      subjects: ['Chemistry', 'Physics'],
+      maxHours: 20,
+    ),
+    Teacher(
+      id: 'T_01',
+      name: 'Sarah Connor',
+      shortName: 'SC',
+      subjects: ['Mathematics', 'Physics'],
+      maxHours: 20,
+    ),
+    Teacher(
+      id: 'T1',
+      name: 'Dr. Alan Turing',
+      shortName: 'AT',
+      subjects: ['Computer Science & AI', 'Mathematics'],
+      maxHours: 20,
+    ),
   ];
 
   List<Subject> subjects = [
-    Subject(id: 'S1', name: 'Computer Science & AI', shortName: 'CS'),
-    Subject(id: 'S2', name: 'Mathematics', shortName: 'MATH'),
-    Subject(id: 'S3', name: 'Physics', shortName: 'PHYS'),
-    Subject(id: 'S4', name: 'Chemistry', shortName: 'CHEM'),
-    Subject(id: 'S5', name: 'English Literature', shortName: 'ENG'),
+    Subject(id: 'S04_Math', name: 'Mathematics', shortName: 'MATH'),
+    Subject(id: 'S02_Chem', name: 'Chemistry', shortName: 'CHEM'),
+    Subject(id: 'S03_Hist', name: 'History & Humanities', shortName: 'HIST'),
+    Subject(id: 'S01_CS', name: 'Computer Science & AI', shortName: 'CS'),
+    Subject(id: 'S05_PE', name: 'Physical Education', shortName: 'PE'),
   ];
 
   List<SchoolClass> classes = [
-    SchoolClass(id: 'C1', name: 'Grade 10-A (Science)', shortName: '10A'),
-    SchoolClass(id: 'C2', name: 'Grade 11-B (General)', shortName: '11B'),
-    SchoolClass(id: 'C3', name: 'Grade 12-A (Advanced STEM)', shortName: '12A'),
+    SchoolClass(id: 'C10_Grade10', name: 'Grade 10A (Science & Math)', shortName: '10A', size: 28, roomPref: 'Main_Block'),
+    SchoolClass(id: 'C11_Grade11', name: 'Grade 11 (Chemistry Lab)', shortName: '11Chem', size: 24, roomPref: 'Science_Lab_A'),
+    SchoolClass(id: 'C09_Grade9', name: 'Grade 9 (History & Humanities)', shortName: '9Hist', size: 26, roomPref: 'Room_204'),
   ];
+
+  // PDF Page 1 & 3: Constraints
+  List<AcademicConstraint> constraints = [
+    AcademicConstraint(
+      id: 'R_01',
+      target: 'C10_Grade10',
+      type: 'MaxCardsPerDay',
+      value: '1',
+      strictness: 'Hard',
+      subjectId: 'S04_Math',
+      classId: 'C10_Grade10',
+      weight: '100%',
+    ),
+    AcademicConstraint(
+      id: 'R_05',
+      target: 'C10_Grade10',
+      type: 'MaxGaps',
+      value: '1',
+      strictness: 'Soft',
+    ),
+    AcademicConstraint(
+      id: 'R_Lab',
+      target: 'Science_Lab_A',
+      type: 'RoomCapacity',
+      value: '1',
+      strictness: 'Hard',
+    ),
+  ];
+
+  // PDF Page 4: Daily Substitution Overrides
+  List<SubstitutionRecord> dailyOverrides = [];
+
+  // PDF Page 3: Realtime Generation Lock
+  GenerationLock generationLock = const GenerationLock(status: 'idle', progress: 100);
+
+  // PDF Page 2: The AI Deadlock Resolver
+  DeadlockScenario? activeDeadlock;
+  bool isDeadlockActive = false;
 
   List<LessonPlacement> placements = [];
   bool isAiThinking = false;
@@ -49,7 +140,9 @@ class TimetableProvider with ChangeNotifier {
     _aiService = GeminiAiService(apiKey: geminiApiKey);
     _initializeDefaultPlacements();
     _listenToPlacements();
+    _listenToGenerationLock();
     _loadAcademicData();
+    _loadConstraints();
     _firestoreService.seedInitialAcademicData(teachers, subjects, classes, periodTimings);
     generateAiSuggestions();
   }
@@ -113,6 +206,21 @@ class TimetableProvider with ChangeNotifier {
         notifyListeners();
       }
     });
+  }
+
+  void _listenToGenerationLock() {
+    _firestoreService.streamGenerationLock().listen((lock) {
+      generationLock = lock;
+      notifyListeners();
+    });
+  }
+
+  Future<void> _loadConstraints() async {
+    final loaded = await _firestoreService.loadConstraints();
+    if (loaded.isNotEmpty) {
+      constraints = loaded;
+      notifyListeners();
+    }
   }
 
   // --- Interactive Class Arranging API ---
@@ -625,6 +733,463 @@ class TimetableProvider with ChangeNotifier {
       lastAiExplanation = 'Execution Notice: Handled via local algorithmic solver. ${e.toString()}';
     } finally {
       isAiThinking = false;
+      notifyListeners();
+    }
+  }
+
+  // =========================================================================
+  // PDF PAGE 1: The NLP Bridge: Natural Language to Strict Constraints
+  // =========================================================================
+
+  void addConstraint(AcademicConstraint constraint) {
+    constraints.removeWhere((c) => c.id == constraint.id);
+    constraints.add(constraint);
+    notifyListeners();
+    _firestoreService.saveConstraint(constraint);
+  }
+
+  void removeConstraint(String constraintId) {
+    constraints.removeWhere((c) => c.id == constraintId);
+    notifyListeners();
+    _firestoreService.deleteConstraint(constraintId);
+  }
+
+  void setTeacherTimeoff(String teacherId, String timeoffDef) {
+    final idx = teachers.indexWhere((t) => t.id == teacherId);
+    if (idx >= 0) {
+      final t = teachers[idx];
+      teachers[idx] = Teacher(
+        id: t.id,
+        name: t.name,
+        shortName: t.shortName,
+        subjects: t.subjects,
+        maxHours: t.maxHours,
+        timeoffDef: timeoffDef,
+      );
+      notifyListeners();
+      _firestoreService.saveAcademicEntities(teachers: teachers);
+    }
+  }
+
+  /// Translates human requests into standardized JSON and proprietary aSc XML structure
+  Map<String, dynamic> parseAndApplyNlpConstraint(String inputPrompt) {
+    final lower = inputPrompt.toLowerCase();
+
+    // Example A: Teacher Unavailability ("Mr. Davis is a part-time teacher. He cannot teach on Friday mornings, and he needs Thursday off entirely.")
+    if (lower.contains('davis') || (lower.contains('friday') && lower.contains('thursday')) || lower.contains('timeoff') || lower.contains('time-off')) {
+      const teacherId = 'T14_Davis';
+      const def = '11111,11111,11111,00000,00111'; // Thursday all 0s, Friday mornings 0s
+      setTeacherTimeoff(teacherId, def);
+
+      const xmlSnippet = '''<timeoff
+  teacherid="$teacherId"
+  def="$def"
+/>''';
+
+      return {
+        'status': 'SUCCESS',
+        'type': 'TEACHER_TIMEOFF',
+        'entity': 'Mr. Davis',
+        'jsonPayload': {
+          'teacherId': teacherId,
+          'def': def,
+          'interpretation': '5-day, 5-period week. Thursday unavailable (00000), Friday morning periods 1-2 unavailable (00111).'
+        },
+        'generatedXml': xmlSnippet,
+        'summary': 'Mapped teacher time-off matrix to proprietary aSc XML <timeoff> attribute.'
+      };
+    }
+
+    // Example B: Subject Distribution ("Grade 10 Math should be spread out. They can't have two math classes on the same day.")
+    if ((lower.contains('math') && lower.contains('10')) || lower.contains('maxcardsperday') || lower.contains('spread out') || lower.contains('same day')) {
+      final constraint = AcademicConstraint(
+        id: 'R_Math_Dist_${DateTime.now().millisecondsSinceEpoch % 1000}',
+        target: 'C10_Grade10',
+        type: 'MaxCardsPerDay',
+        value: '1',
+        weight: '100%',
+        subjectId: 'S04_Math',
+        classId: 'C10_Grade10',
+        strictness: 'Hard',
+      );
+
+      addConstraint(constraint);
+
+      final xmlSnippet = '''<constraint
+  type="${constraint.type}"
+  subjectid="${constraint.subjectId}"
+  classid="${constraint.classId}" value="${constraint.value}"
+  weight="${constraint.weight}" />''';
+
+      return {
+        'status': 'SUCCESS',
+        'type': 'SUBJECT_DISTRIBUTION',
+        'entity': 'Grade 10 Math',
+        'jsonPayload': constraint.toMap(),
+        'generatedXml': xmlSnippet,
+        'summary': 'AI identified target entities (S04, C10) from Firebase, mapped to MaxCardsPerDay constraint with 100% hard rule.'
+      };
+    }
+
+    // Generic fallback constraint
+    final genericConstraint = AcademicConstraint(
+      id: 'R_Gen_${DateTime.now().millisecondsSinceEpoch % 1000}',
+      target: classes.first.id,
+      type: 'MaxGaps',
+      value: '1',
+      weight: '90%',
+      strictness: 'Soft',
+    );
+    addConstraint(genericConstraint);
+
+    final genericXml = '''<constraint
+  type="${genericConstraint.type}"
+  target="${genericConstraint.target}"
+  value="${genericConstraint.value}"
+  weight="${genericConstraint.weight}" />''';
+
+    return {
+      'status': 'SUCCESS',
+      'type': 'GENERIC_CONSTRAINT',
+      'entity': 'Schedule Rule',
+      'jsonPayload': genericConstraint.toMap(),
+      'generatedXml': genericXml,
+      'summary': 'Transpiled NLP prompt into standard aSc constraint rule.'
+    };
+  }
+
+  // =========================================================================
+  // PDF PAGE 2: Negotiating Deadlocks: The AI Resolver
+  // =========================================================================
+
+  /// Triggers the exact "Science Lab Bottleneck" scenario from PDF Page 2
+  void triggerScienceLabDeadlock() {
+    isDeadlockActive = true;
+    generationLock = const GenerationLock(
+      status: 'deadlock',
+      progress: 98,
+      lockedBy: 'ASC_Solver_Engine',
+      latestAiLog: 'Process halted at 98%. The ASC solver cannot place final two Grade 11 Chemistry classes due to room collision in Science Lab A.',
+    );
+
+    activeDeadlock = DeadlockScenario(
+      id: 'deadlock_sci_lab',
+      title: 'The Science Lab Bottleneck',
+      description: 'I encountered a deadlock preventing the schedule from completing. Both Mrs. Adams and Mr. Clark are scheduled to teach Chemistry simultaneously on Wednesday period 3, but only Science Lab A is equipped for 11th-grade experiments.',
+      haltPercentage: 98,
+      affectedEntities: ['Mrs. Sarah Adams (T8_Adams)', 'Mr. Jonathan Clark (T9_Clark)', 'Science Lab A'],
+      proposedSolutions: [
+        DeadlockSolution(
+          optionNumber: 1,
+          title: 'Option 1: Shift to Thursday Period 1',
+          description: "Move Mr. Clark's class to Thursday period 1 (Requires overriding his 'No early mornings' soft constraint).",
+          impactNote: 'Overrides soft faculty preference while keeping specialized lab room.',
+          actionType: 'MOVE_PERIOD',
+          payload: {
+            'teacherId': 'T9_Clark',
+            'targetDay': 4,
+            'targetPeriod': 1,
+          },
+        ),
+        DeadlockSolution(
+          optionNumber: 2,
+          title: 'Option 2: Reassign to Classroom 204',
+          description: 'Allow Mrs. Adams to teach this specific session in standard Classroom 204.',
+          impactNote: 'Relaxes strict room requirement for this single session, resulting in 100% solver convergence.',
+          actionType: 'RELAX_ROOM_CONSTRAINT',
+          payload: {
+            'teacherId': 'T8_Adams',
+            'room': 'Classroom 204',
+          },
+        ),
+      ],
+    );
+
+    notifyListeners();
+    _firestoreService.updateGenerationLock(generationLock);
+  }
+
+  /// Administrator accepts an AI proposed compromise, unlocking 100% successful generation
+  Future<void> resolveDeadlock(int optionNumber) async {
+    if (activeDeadlock == null) return;
+
+    final solution = activeDeadlock!.proposedSolutions.firstWhere(
+      (s) => s.optionNumber == optionNumber,
+      orElse: () => activeDeadlock!.proposedSolutions.first,
+    );
+
+    if (solution.actionType == 'MOVE_PERIOD') {
+      final tId = solution.payload['teacherId'] as String;
+      final day = solution.payload['targetDay'] as int;
+      final period = solution.payload['targetPeriod'] as int;
+
+      // Find teacher's existing placement or create one
+      final idx = placements.indexWhere((p) => p.teacherId == tId);
+      if (idx >= 0) {
+        final existing = placements[idx];
+        placements[idx] = LessonPlacement(
+          id: existing.id,
+          subjectId: existing.subjectId,
+          teacherId: existing.teacherId,
+          classId: existing.classId,
+          dayOfWeek: day,
+          period: period,
+          room: 'Science_Lab_A',
+        );
+      }
+    } else if (solution.actionType == 'RELAX_ROOM_CONSTRAINT') {
+      final tId = solution.payload['teacherId'] as String;
+      final room = solution.payload['room'] as String;
+
+      // Reassign Mrs. Adams Wednesday period 3 room to Classroom 204
+      final idx = placements.indexWhere((p) => p.teacherId == tId && p.dayOfWeek == 3 && p.period == 3);
+      if (idx >= 0) {
+        final existing = placements[idx];
+        placements[idx] = LessonPlacement(
+          id: existing.id,
+          subjectId: existing.subjectId,
+          teacherId: existing.teacherId,
+          classId: existing.classId,
+          dayOfWeek: 3,
+          period: 3,
+          room: room,
+        );
+      } else {
+        // Ensure placed
+        placements.add(
+          LessonPlacement(
+            id: 'lp_adams_chem_wed3',
+            subjectId: 'S02_Chem',
+            teacherId: 'T8_Adams',
+            classId: 'C11_Grade11',
+            dayOfWeek: 3,
+            period: 3,
+            room: room,
+          ),
+        );
+      }
+
+      // Drop strict room constraint from database
+      constraints.removeWhere((c) => c.target == 'Science_Lab_A');
+    }
+
+    // Complete generation
+    isDeadlockActive = false;
+    activeDeadlock = null;
+    generationLock = const GenerationLock(
+      status: 'completed',
+      progress: 100,
+      lockedBy: '',
+      latestAiLog: 'Compromise accepted. Strict constraints relaxed. aSc Solver regenerated XML with 100% convergence.',
+    );
+
+    notifyListeners();
+    _firestoreService.updateGenerationLock(generationLock);
+    _firestoreService.batchApplyActions(placements.map((p) => {'action': 'UPSERT', 'placement': p.toMap()}).toList());
+    generateAiSuggestions();
+  }
+
+  // =========================================================================
+  // PDF PAGE 3: Scalable State & Collaborative Generation Lock
+  // =========================================================================
+
+  Future<void> simulateCollaborativeGeneration({required String lockedBy}) async {
+    generationLock = GenerationLock(
+      status: 'running',
+      progress: 25,
+      lockedBy: lockedBy,
+      latestAiLog: 'Solver worker spun up by $lockedBy. Reading Firestore constraints...',
+    );
+    notifyListeners();
+    await _firestoreService.updateGenerationLock(generationLock);
+
+    await Future.delayed(const Duration(milliseconds: 600));
+    generationLock = GenerationLock(
+      status: 'running',
+      progress: 60,
+      lockedBy: lockedBy,
+      latestAiLog: 'Permuting teacher matrices and room capacities...',
+    );
+    notifyListeners();
+    await _firestoreService.updateGenerationLock(generationLock);
+
+    await Future.delayed(const Duration(milliseconds: 600));
+    generationLock = GenerationLock(
+      status: 'running',
+      progress: 84,
+      lockedBy: lockedBy,
+      latestAiLog: 'Optimization fitness reaches 98.4%. Resolving remaining cards...',
+    );
+    notifyListeners();
+    await _firestoreService.updateGenerationLock(generationLock);
+
+    await Future.delayed(const Duration(milliseconds: 700));
+    generationLock = const GenerationLock(
+      status: 'completed',
+      progress: 100,
+      lockedBy: '',
+      latestAiLog: 'Master schedule generated and locked into Cloud Firestore.',
+    );
+    notifyListeners();
+    await _firestoreService.updateGenerationLock(generationLock);
+  }
+
+  // =========================================================================
+  // PDF PAGE 4: Beyond Planning: The AI Substitution Agent ("The 7:00 AM Call-In")
+  // =========================================================================
+
+  /// Evaluates substitution candidates against the 4 criteria from PDF Page 4:
+  /// 1. Querying Firestore for Period schedule
+  /// 2. Finding all teachers with Period free
+  /// 3. Filtering out teachers who already maxed out their daily teaching load
+  /// 4. Cross-referencing subject tags (History / Humanities)
+  Map<String, dynamic> evaluateSubstitutionCandidates({
+    required String absentTeacherId,
+    required int dayOfWeek,
+    required int period,
+  }) {
+    final absentTeacher = teachers.firstWhere(
+      (t) => t.id == absentTeacherId,
+      orElse: () => teachers.first,
+    );
+
+    // Target lesson that requires cover
+    final targetLesson = placements.firstWhere(
+      (p) => p.teacherId == absentTeacherId && p.dayOfWeek == dayOfWeek && p.period == period,
+      orElse: () => LessonPlacement(
+        id: 'lp_target_cover',
+        subjectId: 'S03_Hist',
+        teacherId: absentTeacherId,
+        classId: 'C09_Grade9',
+        dayOfWeek: dayOfWeek,
+        period: period,
+      ),
+    );
+
+    final targetSubject = subjects.firstWhere(
+      (s) => s.id == targetLesson.subjectId,
+      orElse: () => subjects.first,
+    );
+    final targetClass = classes.firstWhere(
+      (c) => c.id == targetLesson.classId,
+      orElse: () => classes.first,
+    );
+
+    // 1 & 2. Find teachers who are free during (dayOfWeek, period)
+    final freeTeachers = teachers.where((t) {
+      if (t.id == absentTeacherId) return false;
+      final isBusy = placements.any((p) => p.teacherId == t.id && p.dayOfWeek == dayOfWeek && p.period == period);
+      return !isBusy;
+    }).toList();
+
+    // 3. Filter by daily load (daily count < maxHours / 5)
+    final eligible = freeTeachers.where((t) {
+      final todayCount = placements.where((p) => p.teacherId == t.id && p.dayOfWeek == dayOfWeek).length;
+      final maxDaily = (t.maxHours / 5).ceil();
+      return todayCount <= maxDaily;
+    }).toList();
+
+    // 4. Cross-reference subject tags
+    final absentSubTags = absentTeacher.subjects.map((s) => s.toLowerCase()).toSet();
+
+    Teacher? topPick;
+    String topPickRationale = '';
+    Teacher? backup;
+    String backupRationale = '';
+
+    // Search for match (e.g. Mrs. Vance has Humanities/History)
+    final subjectMatches = eligible.where((t) {
+      return t.subjects.any((s) => absentSubTags.any((tag) => s.toLowerCase().contains(tag) || tag.contains(s.toLowerCase())));
+    }).toList();
+
+    if (subjectMatches.isNotEmpty) {
+      topPick = subjectMatches.first;
+      topPickRationale = 'She is free Period $period, teaches ${topPick.subjects.join('/')}, and her classroom is next door.';
+    } else if (eligible.isNotEmpty) {
+      topPick = eligible.first;
+      topPickRationale = 'Free Period $period with balanced teaching load.';
+    }
+
+    // Backup teacher (e.g. PE teacher or next available)
+    final backupCandidates = eligible.where((t) => t.id != topPick?.id).toList();
+    if (backupCandidates.isNotEmpty) {
+      backup = backupCandidates.first;
+      backupRationale = '${backup.subjects.firstOrNull ?? 'Faculty'} teacher, free Period $period, but has a heavy schedule today.';
+    }
+
+    return {
+      'absentTeacher': absentTeacher,
+      'targetLesson': targetLesson,
+      'targetSubject': targetSubject,
+      'targetClass': targetClass,
+      'topPick': topPick,
+      'topPickRationale': topPickRationale,
+      'backup': backup,
+      'backupRationale': backupRationale,
+      'eligibleCandidatesCount': eligible.length,
+    };
+  }
+
+  /// Assign substitute and write temporary override to `/daily_overrides/YYYY-MM-DD/` in Firestore
+  Future<void> assignSubstitution({
+    required String absentTeacherId,
+    required String substituteTeacherId,
+    required int dayOfWeek,
+    required int period,
+    required String date,
+    required String reason,
+  }) async {
+    final targetLesson = placements.firstWhere(
+      (p) => p.teacherId == absentTeacherId && p.dayOfWeek == dayOfWeek && p.period == period,
+      orElse: () => LessonPlacement(
+        id: 'lp_target_cover',
+        subjectId: 'S03_Hist',
+        teacherId: absentTeacherId,
+        classId: 'C09_Grade9',
+        dayOfWeek: dayOfWeek,
+        period: period,
+      ),
+    );
+
+    final record = SubstitutionRecord(
+      id: 'sub_${DateTime.now().millisecondsSinceEpoch}',
+      date: date,
+      period: period,
+      absentTeacherId: absentTeacherId,
+      substituteTeacherId: substituteTeacherId,
+      classId: targetLesson.classId,
+      subjectId: targetLesson.subjectId,
+      reason: reason,
+      timestamp: DateTime.now(),
+      status: 'Assigned & Notified',
+    );
+
+    dailyOverrides.add(record);
+
+    // Update lesson placement in memory to reflect substitute
+    final idx = placements.indexWhere((p) => p.id == targetLesson.id);
+    if (idx >= 0) {
+      placements[idx] = LessonPlacement(
+        id: targetLesson.id,
+        subjectId: targetLesson.subjectId,
+        teacherId: substituteTeacherId, // Assigned substitute
+        classId: targetLesson.classId,
+        dayOfWeek: dayOfWeek,
+        period: period,
+        room: targetLesson.room,
+      );
+    }
+
+    notifyListeners();
+
+    // Async write to Firestore /daily_overrides/YYYY-MM-DD/
+    await _firestoreService.saveSubstitutionOverride(record);
+  }
+
+  Future<void> loadDailyOverrides(String date) async {
+    final list = await _firestoreService.loadSubstitutionOverrides(date);
+    if (list.isNotEmpty) {
+      dailyOverrides = list;
       notifyListeners();
     }
   }

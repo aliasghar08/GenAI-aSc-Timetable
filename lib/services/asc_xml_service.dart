@@ -9,6 +9,7 @@ class AscXmlService {
     required List<Subject> subjects,
     required List<SchoolClass> classes,
     required List<LessonPlacement> placements,
+    List<AcademicConstraint> constraints = const [],
   }) {
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="windows-1250"?>');
@@ -55,10 +56,32 @@ class AscXmlService {
     }
     buffer.writeln('  </classes>');
 
-    // 6. Placed Lesson Cards
+    // 6. Teacher Timeoff Matrices (Page 1: The NLP Bridge)
+    final teachersWithTimeoff = teachers.where((t) => t.timeoffDef != null && t.timeoffDef!.isNotEmpty).toList();
+    if (teachersWithTimeoff.isNotEmpty) {
+      buffer.writeln('  <timeoffs>');
+      for (final t in teachersWithTimeoff) {
+        buffer.writeln('    <timeoff teacherid="${t.id}" def="${t.timeoffDef}"/>');
+      }
+      buffer.writeln('  </timeoffs>');
+    }
+
+    // 7. Structural Constraints (Page 1: Subject Distribution & Rules)
+    if (constraints.isNotEmpty) {
+      buffer.writeln('  <constraints>');
+      for (final c in constraints) {
+        final subAttr = c.subjectId != null ? ' subjectid="${c.subjectId}"' : '';
+        final classAttr = c.classId != null ? ' classid="${c.classId}"' : '';
+        buffer.writeln('    <constraint type="${c.type}"$subAttr$classAttr value="${c.value}" weight="${c.weight}"/>');
+      }
+      buffer.writeln('  </constraints>');
+    }
+
+    // 8. Placed Lesson Cards
     buffer.writeln('  <cards>');
     for (final lp in placements) {
-      buffer.writeln('    <card lessonid="${lp.id}" day="${lp.dayOfWeek}" period="${lp.period}" classroomids=""/>');
+      final roomAttr = lp.room != null ? ' classroomids="${lp.room}"' : ' classroomids=""';
+      buffer.writeln('    <card lessonid="${lp.id}" day="${lp.dayOfWeek}" period="${lp.period}"$roomAttr/>');
     }
     buffer.writeln('  </cards>');
 
@@ -119,6 +142,42 @@ class AscXmlService {
         teacherId: '',
         dayOfWeek: day,
         period: period,
+        room: attrs['classroomids'],
+      ));
+    }
+
+    // Parse timeoffs
+    final timeoffMatches = RegExp(r'<timeoff\s+([^>]+)/>').allMatches(xmlString);
+    for (final m in timeoffMatches) {
+      final attrs = _parseAttributes(m.group(1) ?? '');
+      final teacherId = attrs['teacherid'] ?? '';
+      final def = attrs['def'] ?? '';
+      final tIdx = teachers.indexWhere((t) => t.id == teacherId);
+      if (tIdx >= 0) {
+        teachers[tIdx] = Teacher(
+          id: teachers[tIdx].id,
+          name: teachers[tIdx].name,
+          shortName: teachers[tIdx].shortName,
+          subjects: teachers[tIdx].subjects,
+          maxHours: teachers[tIdx].maxHours,
+          timeoffDef: def,
+        );
+      }
+    }
+
+    // Parse constraints
+    final List<AcademicConstraint> constraints = [];
+    final constraintMatches = RegExp(r'<constraint\s+([^>]+)/>').allMatches(xmlString);
+    for (final m in constraintMatches) {
+      final attrs = _parseAttributes(m.group(1) ?? '');
+      constraints.add(AcademicConstraint(
+        id: 'c_${constraints.length + 1}',
+        target: attrs['classid'] ?? attrs['subjectid'] ?? '',
+        type: attrs['type'] ?? '',
+        value: attrs['value'] ?? '1',
+        weight: attrs['weight'] ?? '100%',
+        subjectId: attrs['subjectid'],
+        classId: attrs['classid'],
       ));
     }
 
@@ -127,6 +186,7 @@ class AscXmlService {
       'subjects': subjects,
       'classes': classes,
       'placements': placements,
+      'constraints': constraints,
     };
   }
 

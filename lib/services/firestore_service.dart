@@ -97,4 +97,105 @@ class FirestoreService {
       await schoolRef.set(data, SetOptions(merge: true)).timeout(const Duration(seconds: 3));
     } catch (_) {}
   }
+
+  // --- PDF Page 3: /constraints/ Collection ---
+
+  Future<void> saveConstraint(AcademicConstraint constraint) async {
+    try {
+      final docRef = _db
+          .collection('schools')
+          .doc(schoolId)
+          .collection('constraints')
+          .doc(constraint.id);
+      await docRef.set(constraint.toMap(), SetOptions(merge: true)).timeout(const Duration(seconds: 3));
+    } catch (_) {}
+  }
+
+  Future<void> deleteConstraint(String constraintId) async {
+    try {
+      final docRef = _db
+          .collection('schools')
+          .doc(schoolId)
+          .collection('constraints')
+          .doc(constraintId);
+      await docRef.delete().timeout(const Duration(seconds: 3));
+    } catch (_) {}
+  }
+
+  Future<List<AcademicConstraint>> loadConstraints() async {
+    try {
+      final snap = await _db
+          .collection('schools')
+          .doc(schoolId)
+          .collection('constraints')
+          .get()
+          .timeout(const Duration(seconds: 3));
+      return snap.docs.map((doc) => AcademicConstraint.fromMap(doc.data())).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // --- PDF Page 4: /daily_overrides/YYYY-MM-DD/ Collection ---
+
+  Future<void> saveSubstitutionOverride(SubstitutionRecord record) async {
+    try {
+      final docRef = _db
+          .collection('schools')
+          .doc(schoolId)
+          .collection('daily_overrides')
+          .doc(record.date)
+          .collection('records')
+          .doc(record.id);
+      await docRef.set(record.toMap(), SetOptions(merge: true)).timeout(const Duration(seconds: 3));
+    } catch (_) {}
+  }
+
+  Future<List<SubstitutionRecord>> loadSubstitutionOverrides(String date) async {
+    try {
+      final snap = await _db
+          .collection('schools')
+          .doc(schoolId)
+          .collection('daily_overrides')
+          .doc(date)
+          .collection('records')
+          .get()
+          .timeout(const Duration(seconds: 3));
+      return snap.docs.map((doc) => SubstitutionRecord.fromMap(doc.data())).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // --- PDF Page 3: /live/generation Generation Lock ---
+
+  Future<void> updateGenerationLock(GenerationLock lock) async {
+    try {
+      final ref = _db
+          .collection('schools')
+          .doc(schoolId)
+          .collection('live')
+          .doc('generation');
+      await ref.set(lock.toMap(), SetOptions(merge: true)).timeout(const Duration(seconds: 3));
+    } catch (_) {}
+  }
+
+  Stream<GenerationLock> streamGenerationLock() {
+    try {
+      return _db
+          .collection('schools')
+          .doc(schoolId)
+          .collection('live')
+          .doc('generation')
+          .snapshots()
+          .map((snap) {
+        if (snap.exists && snap.data() != null) {
+          return GenerationLock.fromMap(snap.data()!);
+        }
+        return const GenerationLock(status: 'idle', progress: 100);
+      }).handleError((_) => const GenerationLock(status: 'idle', progress: 100));
+    } catch (_) {
+      return Stream.value(const GenerationLock(status: 'idle', progress: 100));
+    }
+  }
 }
