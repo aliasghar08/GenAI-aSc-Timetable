@@ -34,12 +34,51 @@ class TimetableProvider with ChangeNotifier {
   String? lastAiExplanation;
   List<AiScheduleSuggestion> suggestions = [];
 
+  List<PeriodTiming> periodTimings = [
+    const PeriodTiming(period: 1, name: 'Period 1', startTime: '08:00', endTime: '08:45'),
+    const PeriodTiming(period: 2, name: 'Period 2', startTime: '08:50', endTime: '09:35'),
+    const PeriodTiming(period: 3, name: 'Period 3', startTime: '09:55', endTime: '10:40'),
+    const PeriodTiming(period: 4, name: 'Period 4', startTime: '10:45', endTime: '11:30'),
+    const PeriodTiming(period: 5, name: 'Period 5', startTime: '11:50', endTime: '12:35'),
+    const PeriodTiming(period: 6, name: 'Period 6', startTime: '13:20', endTime: '14:05'),
+    const PeriodTiming(period: 7, name: 'Period 7', startTime: '14:10', endTime: '14:55'),
+    const PeriodTiming(period: 8, name: 'Period 8', startTime: '15:00', endTime: '15:45'),
+  ];
+
   TimetableProvider({required String geminiApiKey}) {
     _aiService = GeminiAiService(apiKey: geminiApiKey);
     _initializeDefaultPlacements();
     _listenToPlacements();
-    _firestoreService.seedInitialAcademicData(teachers, subjects, classes);
+    _loadAcademicData();
+    _firestoreService.seedInitialAcademicData(teachers, subjects, classes, periodTimings);
     generateAiSuggestions();
+  }
+
+  Future<void> _loadAcademicData() async {
+    final data = await _firestoreService.loadAcademicData();
+    if (data != null) {
+      if (data['teachers'] != null && (data['teachers'] as List).isNotEmpty) {
+        teachers = (data['teachers'] as List)
+            .map((e) => Teacher.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      if (data['subjects'] != null && (data['subjects'] as List).isNotEmpty) {
+        subjects = (data['subjects'] as List)
+            .map((e) => Subject.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      if (data['classes'] != null && (data['classes'] as List).isNotEmpty) {
+        classes = (data['classes'] as List)
+            .map((e) => SchoolClass.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      if (data['timings'] != null && (data['timings'] as List).isNotEmpty) {
+        periodTimings = (data['timings'] as List)
+            .map((e) => PeriodTiming.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      notifyListeners();
+    }
   }
 
   void _initializeDefaultPlacements() {
@@ -168,6 +207,154 @@ class TimetableProvider with ChangeNotifier {
       {'action': 'UPSERT', 'placement': newPlacement.toMap()}
     ]);
     generateAiSuggestions();
+  }
+
+  /// Drag-and-drop placement handler: moves or swaps a dropped lesson into (targetDay, targetPeriod)
+  void handleDropPlacement({
+    required LessonPlacement dropped,
+    required int targetDay,
+    required int targetPeriod,
+    required String activeEntityId,
+    required bool isClassView,
+  }) {
+    // If dropped on the same slot, do nothing
+    if (dropped.dayOfWeek == targetDay && dropped.period == targetPeriod) {
+      return;
+    }
+
+    // Check if destination slot has a card for the current view
+    final existingMatches = isClassView
+        ? placements.where((p) => p.classId == activeEntityId && p.dayOfWeek == targetDay && p.period == targetPeriod).toList()
+        : placements.where((p) => p.teacherId == activeEntityId && p.dayOfWeek == targetDay && p.period == targetPeriod).toList();
+
+    if (existingMatches.isNotEmpty) {
+      // SWAP
+      final target = existingMatches.first;
+      swapPlacements(dropped.id, target.id);
+    } else {
+      // MOVE
+      movePlacement(dropped.id, targetDay, targetPeriod);
+    }
+  }
+
+  /// Create a new lecture with optional room and persist it
+  void createLecture({
+    required String classId,
+    required String subjectId,
+    required String teacherId,
+    required int dayOfWeek,
+    required int period,
+    String? room,
+  }) {
+    // Remove conflicting lesson for this class in this slot if any
+    placements.removeWhere((p) => p.classId == classId && p.dayOfWeek == dayOfWeek && p.period == period);
+
+    final newPlacement = LessonPlacement(
+      id: 'lp_${classId}_${dayOfWeek}_${period}_${DateTime.now().millisecondsSinceEpoch}',
+      subjectId: subjectId,
+      teacherId: teacherId,
+      classId: classId,
+      dayOfWeek: dayOfWeek,
+      period: period,
+      room: room,
+    );
+
+    placements.add(newPlacement);
+    notifyListeners();
+
+    _firestoreService.batchApplyActions([
+      {'action': 'UPSERT', 'placement': newPlacement.toMap()}
+    ]);
+    generateAiSuggestions();
+  }
+
+  // --- Real Academic Entity CRUD & Customization ---
+
+  void addTeacher(String name, String shortName) {
+    final id = 'T${DateTime.now().millisecondsSinceEpoch % 10000}';
+    teachers.add(Teacher(id: id, name: name, shortName: shortName));
+    notifyListeners();
+    _firestoreService.saveAcademicEntities(teachers: teachers);
+  }
+
+  void updateTeacher(String id, String name, String shortName) {
+    final idx = teachers.indexWhere((t) => t.id == id);
+    if (idx >= 0) {
+      teachers[idx] = Teacher(id: id, name: name, shortName: shortName);
+      notifyListeners();
+      _firestoreService.saveAcademicEntities(teachers: teachers);
+    }
+  }
+
+  void deleteTeacher(String id) {
+    teachers.removeWhere((t) => t.id == id);
+    placements.removeWhere((p) => p.teacherId == id);
+    notifyListeners();
+    _firestoreService.saveAcademicEntities(teachers: teachers);
+    generateAiSuggestions();
+  }
+
+  void addSubject(String name, String shortName) {
+    final id = 'S${DateTime.now().millisecondsSinceEpoch % 10000}';
+    subjects.add(Subject(id: id, name: name, shortName: shortName));
+    notifyListeners();
+    _firestoreService.saveAcademicEntities(subjects: subjects);
+  }
+
+  void updateSubject(String id, String name, String shortName) {
+    final idx = subjects.indexWhere((s) => s.id == id);
+    if (idx >= 0) {
+      subjects[idx] = Subject(id: id, name: name, shortName: shortName);
+      notifyListeners();
+      _firestoreService.saveAcademicEntities(subjects: subjects);
+    }
+  }
+
+  void deleteSubject(String id) {
+    subjects.removeWhere((s) => s.id == id);
+    placements.removeWhere((p) => p.subjectId == id);
+    notifyListeners();
+    _firestoreService.saveAcademicEntities(subjects: subjects);
+    generateAiSuggestions();
+  }
+
+  void addClass(String name, String shortName) {
+    final id = 'C${DateTime.now().millisecondsSinceEpoch % 10000}';
+    classes.add(SchoolClass(id: id, name: name, shortName: shortName));
+    notifyListeners();
+    _firestoreService.saveAcademicEntities(classes: classes);
+  }
+
+  void updateClass(String id, String name, String shortName) {
+    final idx = classes.indexWhere((c) => c.id == id);
+    if (idx >= 0) {
+      classes[idx] = SchoolClass(id: id, name: name, shortName: shortName);
+      notifyListeners();
+      _firestoreService.saveAcademicEntities(classes: classes);
+    }
+  }
+
+  void deleteClass(String id) {
+    classes.removeWhere((c) => c.id == id);
+    placements.removeWhere((p) => p.classId == id);
+    notifyListeners();
+    _firestoreService.saveAcademicEntities(classes: classes);
+    generateAiSuggestions();
+  }
+
+  void updatePeriodTiming(int period, String startTime, String endTime, {String? name}) {
+    final idx = periodTimings.indexWhere((p) => p.period == period);
+    if (idx >= 0) {
+      periodTimings[idx] = PeriodTiming(
+        period: period,
+        name: name ?? periodTimings[idx].name,
+        startTime: startTime,
+        endTime: endTime,
+        isBreak: periodTimings[idx].isBreak,
+      );
+      notifyListeners();
+      _firestoreService.saveAcademicEntities(timings: periodTimings);
+    }
   }
 
   /// Remove a lesson placement to clear a slot

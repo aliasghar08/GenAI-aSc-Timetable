@@ -77,6 +77,7 @@ class LessonPlacement {
   final String classId;
   final int dayOfWeek; // 1 = Mon, 2 = Tue, ..., 5 = Fri
   final int period; // 1 to 8
+  final String? room;
 
   LessonPlacement({
     required this.id,
@@ -85,6 +86,7 @@ class LessonPlacement {
     required this.classId,
     required this.dayOfWeek,
     required this.period,
+    this.room,
   });
 
   Map<String, dynamic> toMap() => {
@@ -94,6 +96,7 @@ class LessonPlacement {
         'classId': classId,
         'dayOfWeek': dayOfWeek,
         'period': period,
+        'room': room,
       };
 
   factory LessonPlacement.fromMap(Map<String, dynamic> map) => LessonPlacement(
@@ -103,6 +106,39 @@ class LessonPlacement {
         classId: map['classId'] ?? '',
         dayOfWeek: map['dayOfWeek'] is int ? map['dayOfWeek'] : int.tryParse(map['dayOfWeek'].toString()) ?? 1,
         period: map['period'] is int ? map['period'] : int.tryParse(map['period'].toString()) ?? 1,
+        room: map['room'] as String?,
+      );
+}
+
+class PeriodTiming {
+  final int period;
+  final String name;
+  final String startTime;
+  final String endTime;
+  final bool isBreak;
+
+  const PeriodTiming({
+    required this.period,
+    required this.name,
+    required this.startTime,
+    required this.endTime,
+    this.isBreak = false,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'period': period,
+        'name': name,
+        'startTime': startTime,
+        'endTime': endTime,
+        'isBreak': isBreak,
+      };
+
+  factory PeriodTiming.fromMap(Map<String, dynamic> map) => PeriodTiming(
+        period: map['period'] is int ? map['period'] : int.tryParse(map['period'].toString()) ?? 1,
+        name: map['name'] ?? '',
+        startTime: map['startTime'] ?? '',
+        endTime: map['endTime'] ?? '',
+        isBreak: map['isBreak'] ?? false,
       );
 }
 

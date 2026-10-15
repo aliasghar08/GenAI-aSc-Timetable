@@ -11,11 +11,12 @@ import '../theme/app_typography.dart';
 
 /// Next-Gen Autonomous Timetable Studio Screen
 /// Features:
-/// 1. Interactive Graphical Interface to manually & visually arrange classes (Move, Swap, Quick-Assign, Clear).
-/// 2. Actionable AI Suggestions with one-click "Act Upon This Suggestion" execution.
-/// 3. Resilient CSP Engine with timeout safeguards so it never hangs.
-/// 4. View Switcher (Class Matrix vs Teacher Workload Matrix).
-/// 5. Native compliant aSc Timetables XML export.
+/// 1. Drag & Drop Lecture Arrangement with real-time feedback & slot collision detection.
+/// 2. "+ Create New Lecture" with custom subject, teacher, class, period, and room.
+/// 3. Dedicated "⏰ Timings Schedule" view tab showing real-world clock hours and bell schedule.
+/// 4. Real Data Management (CRUD for Real Teachers, Real Classes, and Real Subjects).
+/// 5. Actionable AI Suggestions with one-click "Act Upon This Suggestion" execution.
+/// 6. Native compliant aSc Timetables XML export.
 class TimetableStudioScreen extends StatefulWidget {
   const TimetableStudioScreen({super.key});
 
@@ -27,7 +28,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
   final TextEditingController _promptController = TextEditingController();
   late String selectedClassId;
   late String _selectedTeacherId;
-  String _viewMode = 'class'; // 'class' or 'teacher'
+  String _viewMode = 'class'; // 'class', 'teacher', or 'timing'
 
   // Interactive Class Arranging State
   LessonPlacement? _selectedPlacementForMove;
@@ -199,6 +200,14 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width >= 1000;
 
+    // Safety checks for active entity selection
+    if (provider.classes.isNotEmpty && !provider.classes.any((c) => c.id == selectedClassId)) {
+      selectedClassId = provider.classes.first.id;
+    }
+    if (provider.teachers.isNotEmpty && !provider.teachers.any((t) => t.id == _selectedTeacherId)) {
+      _selectedTeacherId = provider.teachers.first.id;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF090D16),
       body: Stack(
@@ -244,7 +253,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                         ? Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Left: Graphical Class Arranger & Timetable Matrix
+                              // Left: Graphical Class Arranger, Matrix & Timings View
                               Expanded(
                                 flex: 3,
                                 child: _buildFloatingMatrixPanel(provider),
@@ -261,7 +270,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                             child: Column(
                               children: [
                                 SizedBox(
-                                  height: 620,
+                                  height: 640,
                                   child: _buildFloatingMatrixPanel(provider),
                                 ),
                                 const SizedBox(height: 16),
@@ -310,7 +319,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(20),
@@ -368,7 +377,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                       ),
                     ),
                     Text(
-                      'Interactive Class Arranger • Actionable AI Suggestions',
+                      'Drag & Drop Lectures • Real Bell Timings • Live Entity Customizer',
                       style: AppTypography.inter(
                         fontSize: 11,
                         color: const Color(0xFF94A3B8),
@@ -378,13 +387,61 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                 ),
                 const Spacer(),
 
+                // Create New Lecture Button
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => _showCreateLectureModal(provider),
+                    icon: const Icon(CupertinoIcons.plus_circle_fill, size: 15),
+                    label: const Text('+ Create Lecture', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Manage Real School Data / Faculty & Classes
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+                    ),
+                  ),
+                  onPressed: () => _showManageEntitiesModal(provider),
+                  icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 14),
+                  label: const Text('Manage Real Data', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 8),
+
                 // Export XML Button
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white.withValues(alpha: 0.08),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
@@ -394,7 +451,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                   icon: const Icon(CupertinoIcons.arrow_down_doc, size: 14),
                   label: const Text('Export aSc XML', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
 
                 // Administrator Identity Chip
                 Container(
@@ -408,9 +465,9 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(CupertinoIcons.person_crop_circle_fill, size: 14, color: Color(0xFFA5B4FC)),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 5),
                       ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 130),
+                        constraints: const BoxConstraints(maxWidth: 120),
                         child: Text(
                           email,
                           overflow: TextOverflow.ellipsis,
@@ -420,7 +477,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
 
                 // Sign Out Button
                 IconButton(
@@ -498,21 +555,46 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // View & Filter Bar (Class View vs Teacher View)
+              // View & Filter Bar (Class View vs Teacher View vs Timings Schedule)
               _buildArrangerToolbar(provider),
               const SizedBox(height: 10),
 
-              // Active Arranging Mode Indicator (if card selected for move/swap)
-              if (_selectedPlacementForMove != null) _buildArrangingModeBanner(provider),
+              if (_viewMode == 'timing')
+                // Dedicated Timings View Tab
+                Expanded(
+                  child: _buildTimingsView(provider),
+                )
+              else ...[
+                // Active Arranging Mode Indicator (if card selected for move/swap)
+                if (_selectedPlacementForMove != null) _buildArrangingModeBanner(provider),
 
-              // Quick Staging Palette Tray
-              _buildStagingPalette(provider),
-              const SizedBox(height: 10),
+                // Quick Staging Palette Tray with Draggable Subject Chips
+                _buildStagingPalette(provider),
+                const SizedBox(height: 8),
 
-              // The Schedule Grid Matrix
-              Expanded(
-                child: _buildInteractiveGrid(provider),
-              ),
+                // Drag & Drop Hint Pill
+                Row(
+                  children: [
+                    const Icon(CupertinoIcons.hand_draw_fill, size: 12, color: Color(0xFF38BDF8)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Drag and drop any lecture card to move or swap periods on the grid.',
+                      style: AppTypography.inter(fontSize: 10, color: const Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '8 Periods Active • 45m Clock Blocks',
+                      style: AppTypography.inter(fontSize: 10, color: const Color(0xFF818CF8), fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+
+                // The Schedule Grid Matrix with Full Drag-and-Drop
+                Expanded(
+                  child: _buildInteractiveGrid(provider),
+                ),
+              ],
             ],
           ),
         ),
@@ -520,11 +602,13 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
     );
   }
 
-  /// View Mode Switcher and Entity Selector Toolbar
+  /// View Mode Switcher: Class View, Teacher View, and Separate Timings Schedule
   Widget _buildArrangerToolbar(TimetableProvider provider) {
     final currentPlacementsCount = _viewMode == 'class'
         ? provider.placements.where((p) => p.classId == selectedClassId).length
-        : provider.placements.where((p) => p.teacherId == _selectedTeacherId).length;
+        : _viewMode == 'teacher'
+            ? provider.placements.where((p) => p.teacherId == _selectedTeacherId).length
+            : provider.placements.length;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -535,7 +619,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
       ),
       child: Row(
         children: [
-          // View Mode Segmented Pill
+          // View Mode 3-Segmented Pill
           Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.06),
@@ -547,43 +631,54 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
               children: [
                 _buildModeTab('class', 'Class View', CupertinoIcons.building_2_fill),
                 _buildModeTab('teacher', 'Teacher View', CupertinoIcons.person_2_fill),
+                _buildModeTab('timing', 'Timings Schedule', CupertinoIcons.clock_fill),
               ],
             ),
           ),
           const SizedBox(width: 14),
 
-          // Dynamic Entity Dropdown
-          Text(
-            _viewMode == 'class' ? 'Class:' : 'Teacher:',
-            style: AppTypography.inter(fontWeight: FontWeight.w600, fontSize: 12, color: const Color(0xFFE2E8F0)),
-          ),
-          const SizedBox(width: 8),
-          DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              dropdownColor: const Color(0xFF0F172A),
-              value: _viewMode == 'class' ? selectedClassId : _selectedTeacherId,
-              style: AppTypography.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-              items: _viewMode == 'class'
-                  ? provider.classes
-                      .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                      .toList()
-                  : provider.teachers
-                      .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
-                      .toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    if (_viewMode == 'class') {
-                      selectedClassId = val;
-                    } else {
-                      _selectedTeacherId = val;
-                    }
-                    _selectedPlacementForMove = null;
-                  });
-                }
-              },
+          // Dynamic Entity Dropdown (Class or Teacher)
+          if (_viewMode != 'timing') ...[
+            Text(
+              _viewMode == 'class' ? 'Class:' : 'Teacher:',
+              style: AppTypography.inter(fontWeight: FontWeight.w600, fontSize: 12, color: const Color(0xFFE2E8F0)),
             ),
-          ),
+            const SizedBox(width: 8),
+            DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                dropdownColor: const Color(0xFF0F172A),
+                value: _viewMode == 'class' ? selectedClassId : _selectedTeacherId,
+                style: AppTypography.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                items: _viewMode == 'class'
+                    ? provider.classes
+                        .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                        .toList()
+                    : provider.teachers
+                        .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                        .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      if (_viewMode == 'class') {
+                        selectedClassId = val;
+                      } else {
+                        _selectedTeacherId = val;
+                      }
+                      _selectedPlacementForMove = null;
+                    });
+                  }
+                },
+              ),
+            ),
+          ] else ...[
+            const Icon(CupertinoIcons.calendar_today, size: 14, color: Color(0xFF38BDF8)),
+            const SizedBox(width: 6),
+            Text(
+              'Master Institutional Bell Timetable',
+              style: AppTypography.inter(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.white),
+            ),
+          ],
+
           const Spacer(),
 
           // Placed Lessons Count
@@ -644,6 +739,206 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
     );
   }
 
+  /// Dedicated "⏰ Timings Schedule" Separate View Tab
+  Widget _buildTimingsView(TimetableProvider provider) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Banner with edit button
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF6366F1).withValues(alpha: 0.25),
+                  const Color(0xFF06B6D4).withValues(alpha: 0.15),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(CupertinoIcons.clock_fill, color: Color(0xFF38BDF8), size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Daily Period & Bell Schedule',
+                        style: AppTypography.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      Text(
+                        'Standard school bell timings mapped to real-world clock hours. Synchronized with aSc desktop exports.',
+                        style: AppTypography.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _showEditAllTimingsModal(provider),
+                  icon: const Icon(CupertinoIcons.pencil, size: 13),
+                  label: const Text('Edit Bell Timings', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Period Timings Cards List
+          Text(
+            'Institutional Period Timeline (8 Academic Periods + Breaks):',
+            style: AppTypography.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFE2E8F0)),
+          ),
+          const SizedBox(height: 10),
+
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: provider.periodTimings.map((pt) {
+              return Container(
+                width: 210,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'P${pt.period}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFA5B4FC)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            pt.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.white),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => _showEditTimingDialog(provider, pt),
+                          child: const Icon(CupertinoIcons.pencil_circle, size: 16, color: Color(0xFF38BDF8)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(CupertinoIcons.time, size: 12, color: Color(0xFF34D399)),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${pt.startTime} — ${pt.endTime}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF34D399)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+
+          // Master Chronological Lecture Overview
+          Text(
+            'Master Real-Time Scheduled Lectures Overview:',
+            style: AppTypography.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFE2E8F0)),
+          ),
+          const SizedBox(height: 10),
+
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: provider.periodTimings.length,
+              separatorBuilder: (_, _) => const Divider(color: Colors.white12, height: 16),
+              itemBuilder: (context, idx) {
+                final pt = provider.periodTimings[idx];
+                final periodPlacements = provider.placements.where((p) => p.period == pt.period).toList();
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 130,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('P${pt.period} • ${pt.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                          Text('${pt.startTime} - ${pt.endTime}', style: const TextStyle(fontSize: 11, color: Color(0xFF34D399))),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: periodPlacements.isEmpty
+                          ? const Text('Free / Unassigned Period', style: TextStyle(fontSize: 11, color: Colors.white38, fontStyle: FontStyle.italic))
+                          : Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: periodPlacements.map((p) {
+                                final sub = provider.subjects.firstWhere((s) => s.id == p.subjectId, orElse: () => Subject(id: '', name: 'Subject', shortName: '??'));
+                                final teacher = provider.teachers.firstWhere((t) => t.id == p.teacherId, orElse: () => Teacher(id: '', name: 'Teacher', shortName: '??'));
+                                final cls = provider.classes.firstWhere((c) => c.id == p.classId, orElse: () => SchoolClass(id: '', name: 'Class', shortName: '??'));
+
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.3)),
+                                  ),
+                                  child: Text(
+                                    '${weekDays[p.dayOfWeek - 1]}: ${sub.shortName} (${cls.shortName} • ${teacher.shortName})',
+                                    style: const TextStyle(fontSize: 10, color: Color(0xFFE2E8F0), fontWeight: FontWeight.w600),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Arranging Mode Banner shown when a card is selected
   Widget _buildArrangingModeBanner(TimetableProvider provider) {
     final placement = _selectedPlacementForMove!;
@@ -669,7 +964,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Arranging Mode: Selected [${subject.shortName} • ${teacher.shortName}] (Day ${weekDays[placement.dayOfWeek - 1]} P${placement.period}). Tap any empty slot to Move, or another card to Swap!',
+              'Arranging Mode: Selected [${subject.shortName} • ${teacher.shortName}] (Day ${weekDays[placement.dayOfWeek - 1]} P${placement.period}). Drag it or Tap any slot to Move/Swap!',
               style: AppTypography.inter(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
@@ -690,7 +985,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
     );
   }
 
-  /// Quick Arrangement Palette Tray
+  /// Quick Arrangement Palette Tray with draggable subject chips
   Widget _buildStagingPalette(TimetableProvider provider) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -769,7 +1064,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
     );
   }
 
-  /// Weekly Timetable Interactive Grid
+  /// Weekly Timetable Interactive Grid with Drag and Drop
   Widget _buildInteractiveGrid(TimetableProvider provider) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -777,7 +1072,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth > 580 ? constraints.maxWidth : 580),
+            constraints: BoxConstraints(minWidth: constraints.maxWidth > 640 ? constraints.maxWidth : 640),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: ClipRRect(
@@ -788,7 +1083,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   columnWidths: const {
-                    0: FixedColumnWidth(64),
+                    0: FixedColumnWidth(95),
                     1: FlexColumnWidth(1),
                     2: FlexColumnWidth(1),
                     3: FlexColumnWidth(1),
@@ -804,7 +1099,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 10.0),
                           child: Text(
-                            'Period',
+                            'Period / Time',
                             textAlign: TextAlign.center,
                             style: AppTypography.inter(fontWeight: FontWeight.w700, fontSize: 11, color: const Color(0xFF94A3B8)),
                           ),
@@ -824,15 +1119,10 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                     for (int p = 1; p <= 8; p++)
                       TableRow(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'P$p',
-                              style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 11, color: const Color(0xFF818CF8)),
-                            ),
-                          ),
-                          for (int d = 1; d <= 5; d++) _buildInteractiveCell(provider, d, p),
+                          // Left column: Period + Clock Time
+                          _buildPeriodTimingHeaderCell(provider, p),
+                          // Monday - Friday cells with Drag & Drop
+                          for (int d = 1; d <= 5; d++) _buildDragDropCell(provider, d, p),
                         ],
                       ),
                   ],
@@ -845,202 +1135,776 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
     );
   }
 
-  /// Interactive Placement Matrix Cell with Move, Swap, and Quick Scheduling
-  Widget _buildInteractiveCell(TimetableProvider provider, int day, int period) {
-    final matches = _viewMode == 'class'
+  /// Period Header cell showing both Period number and real clock time
+  Widget _buildPeriodTimingHeaderCell(TimetableProvider provider, int period) {
+    final timing = provider.periodTimings.firstWhere(
+      (pt) => pt.period == period,
+      orElse: () => PeriodTiming(period: period, name: 'P$period', startTime: '08:00', endTime: '08:45'),
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'P$period',
+            style: AppTypography.inter(fontWeight: FontWeight.bold, fontSize: 11, color: const Color(0xFF818CF8)),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            timing.startTime,
+            style: const TextStyle(fontSize: 10, color: Color(0xFF34D399), fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Interactive Cell supporting both Native Flutter Drag-and-Drop and Click-to-Move/Swap
+  Widget _buildDragDropCell(TimetableProvider provider, int day, int period) {
+    final isClassView = _viewMode == 'class';
+    final activeEntityId = isClassView ? selectedClassId : _selectedTeacherId;
+
+    final matches = isClassView
         ? provider.placements.where((pl) => pl.classId == selectedClassId && pl.dayOfWeek == day && pl.period == period).toList()
         : provider.placements.where((pl) => pl.teacherId == _selectedTeacherId && pl.dayOfWeek == day && pl.period == period).toList();
 
-    // 1. EMPTY SLOT
-    if (matches.isEmpty) {
-      final isMoveTarget = _selectedPlacementForMove != null;
-      final isStagingTarget = _stagedSubjectId != null;
-
-      return InkWell(
-        onTap: () {
-          // If a card is selected for move, execute the move!
-          if (_selectedPlacementForMove != null) {
-            final moving = _selectedPlacementForMove!;
-            final check = provider.checkCollision(
-              moving.teacherId,
-              moving.classId,
-              day,
-              period,
-              excludePlacementId: moving.id,
-            );
-
-            if (check['hasCollision'] == true) {
-              _showCollisionWarning(provider, check['reason'] as String, () {
-                provider.movePlacement(moving.id, day, period);
-                setState(() => _selectedPlacementForMove = null);
-                _showToast('Moved lesson with constraint override!');
-              });
-            } else {
-              provider.movePlacement(moving.id, day, period);
-              setState(() => _selectedPlacementForMove = null);
-              _showToast('Moved lesson to ${weekDays[day - 1]} Period $period!');
-            }
-          } else if (_stagedSubjectId != null) {
-            // Quick place from staged palette
-            final subId = _stagedSubjectId!;
-            final targetClass = _viewMode == 'class' ? selectedClassId : provider.classes.first.id;
-            final targetTeacher = _viewMode == 'teacher' ? _selectedTeacherId : provider.teachers.first.id;
-
-            provider.addPlacement(
-              subjectId: subId,
-              teacherId: targetTeacher,
-              classId: targetClass,
-              dayOfWeek: day,
-              period: period,
-            );
-            _showToast('Placed new lesson in ${weekDays[day - 1]} Period $period!');
-          } else {
-            // Open quick schedule dialog
-            _showQuickScheduleDialog(provider, day, period);
-          }
-        },
-        child: Container(
-          height: 52,
-          margin: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: isMoveTarget
-                ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                : isStagingTarget
-                    ? const Color(0xFF38BDF8).withValues(alpha: 0.12)
-                    : Colors.white.withValues(alpha: 0.01),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isMoveTarget
-                  ? const Color(0xFF34D399)
-                  : isStagingTarget
-                      ? const Color(0xFF38BDF8).withValues(alpha: 0.4)
-                      : Colors.transparent,
-              style: isMoveTarget ? BorderStyle.solid : BorderStyle.none,
-              width: 1.2,
-            ),
-          ),
-          alignment: Alignment.center,
-          child: isMoveTarget
-              ? const Icon(CupertinoIcons.arrow_down_circle, size: 16, color: Color(0xFF34D399))
-              : isStagingTarget
-                  ? const Icon(CupertinoIcons.plus_circle, size: 14, color: Color(0xFF38BDF8))
-                  : null,
-        ),
-      );
-    }
-
-    // 2. OCCUPIED SLOT
-    final placement = matches.first;
-    final isSelectedForMove = _selectedPlacementForMove?.id == placement.id;
-
-    final subject = provider.subjects.firstWhere(
-      (s) => s.id == placement.subjectId,
-      orElse: () => Subject(id: '', name: 'Unknown', shortName: '??'),
-    );
-    final teacher = provider.teachers.firstWhere(
-      (t) => t.id == placement.teacherId,
-      orElse: () => Teacher(id: '', name: 'Unknown', shortName: '??'),
-    );
-    final schoolClass = provider.classes.firstWhere(
-      (c) => c.id == placement.classId,
-      orElse: () => SchoolClass(id: '', name: 'Unknown', shortName: '??'),
-    );
-
-    return InkWell(
-      onTap: () {
-        if (_selectedPlacementForMove != null) {
-          if (_selectedPlacementForMove!.id == placement.id) {
-            // Deselect
-            setState(() => _selectedPlacementForMove = null);
-          } else {
-            // Execute SWAP!
-            provider.swapPlacements(_selectedPlacementForMove!.id, placement.id);
-            final swappedSub = subject.shortName;
-            setState(() => _selectedPlacementForMove = null);
-            _showToast('Swapped with $swappedSub!');
-          }
-        } else {
-          // Select this placement to move or swap
-          setState(() {
-            _selectedPlacementForMove = placement;
-            _stagedSubjectId = null;
-          });
-        }
+    return DragTarget<LessonPlacement>(
+      onWillAcceptWithDetails: (details) => true,
+      onAcceptWithDetails: (details) {
+        final droppedPlacement = details.data;
+        provider.handleDropPlacement(
+          dropped: droppedPlacement,
+          targetDay: day,
+          targetPeriod: period,
+          activeEntityId: activeEntityId,
+          isClassView: isClassView,
+        );
+        _showToast('Arranged lesson to ${weekDays[day - 1]} Period $period via Drag & Drop!');
       },
-      onLongPress: () => _showLessonEditorModal(provider, placement),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 52,
-        margin: const EdgeInsets.all(2),
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isSelectedForMove
-                ? [
-                    const Color(0xFF38BDF8).withValues(alpha: 0.4),
-                    const Color(0xFF6366F1).withValues(alpha: 0.35),
-                  ]
-                : [
-                    const Color(0xFF6366F1).withValues(alpha: 0.22),
-                    const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelectedForMove ? const Color(0xFF38BDF8) : const Color(0xFF818CF8).withValues(alpha: 0.45),
-            width: isSelectedForMove ? 2.0 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelectedForMove
-                  ? const Color(0xFF38BDF8).withValues(alpha: 0.45)
-                  : const Color(0xFF6366F1).withValues(alpha: 0.18),
-              blurRadius: isSelectedForMove ? 12 : 6,
-              offset: const Offset(0, 2),
+      builder: (context, candidateData, rejectedData) {
+        final isDropHovering = candidateData.isNotEmpty;
+
+        // 1. EMPTY SLOT
+        if (matches.isEmpty) {
+          final isMoveTarget = _selectedPlacementForMove != null;
+          final isStagingTarget = _stagedSubjectId != null;
+
+          return InkWell(
+            onTap: () {
+              if (_selectedPlacementForMove != null) {
+                final moving = _selectedPlacementForMove!;
+                final check = provider.checkCollision(
+                  moving.teacherId,
+                  moving.classId,
+                  day,
+                  period,
+                  excludePlacementId: moving.id,
+                );
+
+                if (check['hasCollision'] == true) {
+                  _showCollisionWarning(provider, check['reason'] as String, () {
+                    provider.movePlacement(moving.id, day, period);
+                    setState(() => _selectedPlacementForMove = null);
+                    _showToast('Moved lesson with constraint override!');
+                  });
+                } else {
+                  provider.movePlacement(moving.id, day, period);
+                  setState(() => _selectedPlacementForMove = null);
+                  _showToast('Moved lesson to ${weekDays[day - 1]} Period $period!');
+                }
+              } else if (_stagedSubjectId != null) {
+                final subId = _stagedSubjectId!;
+                final targetClass = _viewMode == 'class' ? selectedClassId : provider.classes.first.id;
+                final targetTeacher = _viewMode == 'teacher' ? _selectedTeacherId : provider.teachers.first.id;
+
+                provider.addPlacement(
+                  subjectId: subId,
+                  teacherId: targetTeacher,
+                  classId: targetClass,
+                  dayOfWeek: day,
+                  period: period,
+                );
+                _showToast('Placed new lesson in ${weekDays[day - 1]} Period $period!');
+              } else {
+                _showQuickScheduleDialog(provider, day, period);
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              height: 54,
+              margin: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: isDropHovering
+                    ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                    : isMoveTarget
+                        ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                        : isStagingTarget
+                            ? const Color(0xFF38BDF8).withValues(alpha: 0.12)
+                            : Colors.white.withValues(alpha: 0.01),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDropHovering
+                      ? const Color(0xFF34D399)
+                      : isMoveTarget
+                          ? const Color(0xFF34D399)
+                          : isStagingTarget
+                              ? const Color(0xFF38BDF8).withValues(alpha: 0.4)
+                              : Colors.transparent,
+                  width: isDropHovering ? 2.0 : 1.2,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: isDropHovering
+                  ? const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(CupertinoIcons.arrow_down_circle_fill, size: 16, color: Color(0xFF34D399)),
+                        Text('Drop Here', style: TextStyle(fontSize: 8, color: Color(0xFF34D399), fontWeight: FontWeight.bold)),
+                      ],
+                    )
+                  : isMoveTarget
+                      ? const Icon(CupertinoIcons.arrow_down_circle, size: 16, color: Color(0xFF34D399))
+                      : isStagingTarget
+                          ? const Icon(CupertinoIcons.plus_circle, size: 14, color: Color(0xFF38BDF8))
+                          : null,
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: Text(
-                    subject.shortName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                      color: const Color(0xFFE0E7FF),
+          );
+        }
+
+        // 2. OCCUPIED SLOT (Draggable)
+        final placement = matches.first;
+        final isSelectedForMove = _selectedPlacementForMove?.id == placement.id;
+
+        final subject = provider.subjects.firstWhere(
+          (s) => s.id == placement.subjectId,
+          orElse: () => Subject(id: '', name: 'Unknown', shortName: '??'),
+        );
+        final teacher = provider.teachers.firstWhere(
+          (t) => t.id == placement.teacherId,
+          orElse: () => Teacher(id: '', name: 'Unknown', shortName: '??'),
+        );
+        final schoolClass = provider.classes.firstWhere(
+          (c) => c.id == placement.classId,
+          orElse: () => SchoolClass(id: '', name: 'Unknown', shortName: '??'),
+        );
+
+        final cardWidget = Container(
+          height: 54,
+          margin: const EdgeInsets.all(2),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDropHovering
+                  ? [const Color(0xFF06B6D4).withValues(alpha: 0.4), const Color(0xFF6366F1).withValues(alpha: 0.35)]
+                  : isSelectedForMove
+                      ? [const Color(0xFF38BDF8).withValues(alpha: 0.4), const Color(0xFF6366F1).withValues(alpha: 0.35)]
+                      : [const Color(0xFF6366F1).withValues(alpha: 0.22), const Color(0xFF8B5CF6).withValues(alpha: 0.15)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDropHovering
+                  ? const Color(0xFF06B6D4)
+                  : isSelectedForMove
+                      ? const Color(0xFF38BDF8)
+                      : const Color(0xFF818CF8).withValues(alpha: 0.45),
+              width: isDropHovering || isSelectedForMove ? 2.0 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isSelectedForMove
+                    ? const Color(0xFF38BDF8).withValues(alpha: 0.45)
+                    : const Color(0xFF6366F1).withValues(alpha: 0.18),
+                blurRadius: isSelectedForMove ? 12 : 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      subject.shortName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                        color: const Color(0xFFE0E7FF),
+                      ),
                     ),
                   ),
-                ),
-                if (isSelectedForMove) ...[
-                  const SizedBox(width: 3),
-                  const Icon(CupertinoIcons.arrow_right_arrow_left, size: 9, color: Color(0xFF38BDF8)),
+                  if (isSelectedForMove) ...[
+                    const SizedBox(width: 3),
+                    const Icon(CupertinoIcons.arrow_right_arrow_left, size: 9, color: Color(0xFF38BDF8)),
+                  ],
                 ],
-              ],
-            ),
-            const SizedBox(height: 1),
-            Text(
-              _viewMode == 'class' ? teacher.shortName : schoolClass.shortName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.inter(
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF94A3B8),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                _viewMode == 'class' ? teacher.shortName : schoolClass.shortName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.inter(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF94A3B8),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        return Draggable<LessonPlacement>(
+          data: placement,
+          feedback: Material(
+            color: Colors.transparent,
+            child: Transform.rotate(
+              angle: -0.05,
+              child: Container(
+                width: 120,
+                height: 56,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF38BDF8)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.5),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      subject.shortName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                    ),
+                    Text(
+                      '${teacher.shortName} • ${schoolClass.shortName}',
+                      style: const TextStyle(fontSize: 10, color: Colors.white70),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
+          childWhenDragging: Opacity(opacity: 0.35, child: cardWidget),
+          child: InkWell(
+            onTap: () {
+              if (_selectedPlacementForMove != null) {
+                if (_selectedPlacementForMove!.id == placement.id) {
+                  setState(() => _selectedPlacementForMove = null);
+                } else {
+                  provider.swapPlacements(_selectedPlacementForMove!.id, placement.id);
+                  final swappedSub = subject.shortName;
+                  setState(() => _selectedPlacementForMove = null);
+                  _showToast('Swapped with $swappedSub!');
+                }
+              } else {
+                setState(() {
+                  _selectedPlacementForMove = placement;
+                  _stagedSubjectId = null;
+                });
+              }
+            },
+            onLongPress: () => _showLessonEditorModal(provider, placement),
+            child: cardWidget,
+          ),
+        );
+      },
+    );
+  }
+
+  /// "+ Create New Lecture" Modal
+  void _showCreateLectureModal(TimetableProvider provider) {
+    String selClass = provider.classes.isNotEmpty ? selectedClassId : 'C1';
+    String selSub = provider.subjects.isNotEmpty ? provider.subjects.first.id : 'S1';
+    String selTeacher = provider.teachers.isNotEmpty ? _selectedTeacherId : 'T1';
+    int selDay = 1;
+    int selPeriod = 1;
+    final roomController = TextEditingController(text: 'Room 101');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.95),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(CupertinoIcons.plus_circle_fill, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Text('Create New Lecture', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Target Class
+                    const Text('Target Class:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: selClass,
+                      dropdownColor: const Color(0xFF1E293B),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      items: provider.classes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                      onChanged: (val) => setDlgState(() => selClass = val!),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Subject & Teacher Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Subject:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<String>(
+                                initialValue: selSub,
+                                dropdownColor: const Color(0xFF1E293B),
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white.withValues(alpha: 0.05),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                items: provider.subjects.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
+                                onChanged: (val) => setDlgState(() => selSub = val!),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Faculty Teacher:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<String>(
+                                initialValue: selTeacher,
+                                dropdownColor: const Color(0xFF1E293B),
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white.withValues(alpha: 0.05),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                items: provider.teachers.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                                onChanged: (val) => setDlgState(() => selTeacher = val!),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Day & Period Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Day of Week:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<int>(
+                                initialValue: selDay,
+                                dropdownColor: const Color(0xFF1E293B),
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white.withValues(alpha: 0.05),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                items: [
+                                  for (int i = 0; i < weekDays.length; i++)
+                                    DropdownMenuItem(value: i + 1, child: Text(weekDays[i])),
+                                ],
+                                onChanged: (val) => setDlgState(() => selDay = val!),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Period Slot & Time:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<int>(
+                                initialValue: selPeriod,
+                                dropdownColor: const Color(0xFF1E293B),
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white.withValues(alpha: 0.05),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                items: provider.periodTimings.map((pt) {
+                                  return DropdownMenuItem(value: pt.period, child: Text('P${pt.period} (${pt.startTime})'));
+                                }).toList(),
+                                onChanged: (val) => setDlgState(() => selPeriod = val!),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Room / Location
+                    const Text('Room / Lab Location (Optional):', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: roomController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  provider.createLecture(
+                    classId: selClass,
+                    subjectId: selSub,
+                    teacherId: selTeacher,
+                    dayOfWeek: selDay,
+                    period: selPeriod,
+                    room: roomController.text.trim(),
+                  );
+                  Navigator.pop(ctx);
+                  _showToast('Created new lecture successfully!');
+                },
+                child: const Text('Create Lecture'),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Real Academic Data / Faculty & Classes Setup Modal
+  void _showManageEntitiesModal(TimetableProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setMngState) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: DefaultTabController(
+            length: 3,
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.96),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              title: Row(
+                children: [
+                  const Icon(CupertinoIcons.building_2_fill, color: Color(0xFF38BDF8), size: 20),
+                  const SizedBox(width: 10),
+                  const Text('Manage Real School Data', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 600,
+                height: 480,
+                child: Column(
+                  children: [
+                    const TabBar(
+                      indicatorColor: Color(0xFF6366F1),
+                      labelColor: Color(0xFF818CF8),
+                      unselectedLabelColor: Colors.white60,
+                      tabs: [
+                        Tab(text: 'Teachers / Faculty'),
+                        Tab(text: 'Classes / Grades'),
+                        Tab(text: 'Subjects'),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          // Tab 1: Teachers
+                          _buildEntityCrudList<Teacher>(
+                            items: provider.teachers,
+                            title: 'Teacher',
+                            getName: (t) => t.name,
+                            getShort: (t) => t.shortName,
+                            onAdd: (name, short) {
+                              provider.addTeacher(name, short);
+                              setMngState(() {});
+                            },
+                            onDelete: (id) {
+                              provider.deleteTeacher(id);
+                              setMngState(() {});
+                            },
+                          ),
+                          // Tab 2: Classes
+                          _buildEntityCrudList<SchoolClass>(
+                            items: provider.classes,
+                            title: 'Class',
+                            getName: (c) => c.name,
+                            getShort: (c) => c.shortName,
+                            onAdd: (name, short) {
+                              provider.addClass(name, short);
+                              setMngState(() {});
+                            },
+                            onDelete: (id) {
+                              provider.deleteClass(id);
+                              setMngState(() {});
+                            },
+                          ),
+                          // Tab 3: Subjects
+                          _buildEntityCrudList<Subject>(
+                            items: provider.subjects,
+                            title: 'Subject',
+                            getName: (s) => s.name,
+                            getShort: (s) => s.shortName,
+                            onAdd: (name, short) {
+                              provider.addSubject(name, short);
+                              setMngState(() {});
+                            },
+                            onDelete: (id) {
+                              provider.deleteSubject(id);
+                              setMngState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEntityCrudList<T>({
+    required List<T> items,
+    required String title,
+    required String Function(T) getName,
+    required String Function(T) getShort,
+    required void Function(String name, String short) onAdd,
+    required void Function(String id) onDelete,
+  }) {
+    final nameCtrl = TextEditingController();
+    final shortCtrl = TextEditingController();
+
+    return Column(
+      children: [
+        // Quick add row
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: nameCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  decoration: InputDecoration(
+                    hintText: 'New $title Name (e.g. Mrs. Sarah Smith)',
+                    hintStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: shortCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  decoration: InputDecoration(
+                    hintText: 'Code (e.g. SS)',
+                    hintStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+                onPressed: () {
+                  if (nameCtrl.text.trim().isNotEmpty) {
+                    final short = shortCtrl.text.trim().isNotEmpty ? shortCtrl.text.trim().toUpperCase() : nameCtrl.text.trim().substring(0, 2).toUpperCase();
+                    onAdd(nameCtrl.text.trim(), short);
+                    nameCtrl.clear();
+                    shortCtrl.clear();
+                  }
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Items list
+        Expanded(
+          child: ListView.separated(
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const Divider(color: Colors.white10, height: 1),
+            itemBuilder: (ctx, idx) {
+              final it = items[idx];
+              final name = getName(it);
+              final short = getShort(it);
+              final dynamic dyn = it;
+              final id = dyn.id as String;
+
+              return ListTile(
+                dense: true,
+                title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                subtitle: Text('Code: $short • ID: $id', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                trailing: IconButton(
+                  icon: const Icon(CupertinoIcons.trash, color: Color(0xFFF87171), size: 16),
+                  onPressed: () => onDelete(id),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Edit single period timing dialog
+  void _showEditTimingDialog(TimetableProvider provider, PeriodTiming timing) {
+    final startCtrl = TextEditingController(text: timing.startTime);
+    final endCtrl = TextEditingController(text: timing.endTime);
+    final nameCtrl = TextEditingController(text: timing.name);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Edit Period ${timing.period} Timing', style: const TextStyle(color: Colors.white, fontSize: 15)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: const InputDecoration(labelText: 'Period Label', labelStyle: TextStyle(color: Colors.white60)),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: startCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: const InputDecoration(labelText: 'Start (e.g. 08:00)', labelStyle: TextStyle(color: Colors.white60)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: endCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: const InputDecoration(labelText: 'End (e.g. 08:45)', labelStyle: TextStyle(color: Colors.white60)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+            onPressed: () {
+              provider.updatePeriodTiming(
+                timing.period,
+                startCtrl.text.trim(),
+                endCtrl.text.trim(),
+                name: nameCtrl.text.trim(),
+              );
+              Navigator.pop(ctx);
+              _showToast('Updated Period ${timing.period} timing!');
+            },
+            child: const Text('Save Timing'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditAllTimingsModal(TimetableProvider provider) {
+    _showEditTimingDialog(provider, provider.periodTimings.first);
   }
 
   /// Quick Schedule Dialog for an empty slot
@@ -1068,7 +1932,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Select Subject:', style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 12)),
+                const Text('Select Subject:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: selSub,
@@ -1084,7 +1948,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
                   onChanged: (val) => setDlgState(() => selSub = val!),
                 ),
                 const SizedBox(height: 12),
-                Text('Select Teacher:', style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 12)),
+                const Text('Select Teacher:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: selTeacher,
@@ -1151,7 +2015,7 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
               ListTile(
                 leading: const Icon(CupertinoIcons.arrow_right_arrow_left, color: Color(0xFF38BDF8)),
                 title: const Text('Move / Swap this Lesson', style: TextStyle(color: Colors.white, fontSize: 13)),
-                subtitle: const Text('Select this card and tap another slot on the grid', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                subtitle: const Text('Drag this card or select it to swap with another period', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
                 onTap: () {
                   Navigator.pop(ctx);
                   setState(() => _selectedPlacementForMove = placement);
@@ -1369,11 +2233,11 @@ class _TimetableStudioScreenState extends State<TimetableStudioScreen> {
 
         Expanded(
           child: suggestions.isEmpty
-              ? Center(
+              ? const Center(
                   child: Text(
                     'All constraint suggestions have been satisfied!\nYour schedule is running at peak mathematical efficiency.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 12),
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                   ),
                 )
               : ListView.separated(

@@ -131,6 +131,17 @@ void main() {
     expect(moved.dayOfWeek, equals(2));
     expect(moved.period, equals(4));
 
+    expect(teachers.length, equals(2));
+    expect(subjects.length, equals(2));
+    expect(classes.length, equals(1));
+
+    // Test PeriodTiming model
+    const timing = PeriodTiming(period: 1, name: 'Period 1', startTime: '08:00', endTime: '08:45');
+    expect(timing.period, equals(1));
+    expect(timing.startTime, equals('08:00'));
+    expect(timing.endTime, equals('08:45'));
+    expect(timing.toMap()['name'], equals('Period 1'));
+
     // Test actionable AI suggestion model
     final suggestion = AiScheduleSuggestion(
       id: 'sugg_test_1',
