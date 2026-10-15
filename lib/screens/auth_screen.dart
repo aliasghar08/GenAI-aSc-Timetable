@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../core/app_provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/email_verification_service.dart';
 import '../theme/app_typography.dart';
 
 /// Premium iOS / macOS Glassmorphic Authentication Screen
@@ -20,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isVerifyingEmail = false;
 
   late final AnimationController _animController;
   late final Animation<double> _phase1Fade;
@@ -91,6 +93,41 @@ class _AuthScreenState extends State<AuthScreen>
   Future<void> _submit(AuthProvider auth) async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
+
+    setState(() => _isVerifyingEmail = true);
+
+    // Live DNS MX & Syntax verification via Google Public DNS DoH
+    final verification = await EmailVerificationService.verifyEmail(_emailController.text);
+
+    if (!verification.isValid) {
+      if (mounted) {
+        setState(() => _isVerifyingEmail = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Row(
+              children: [
+                const Icon(Icons.mark_email_unread_outlined, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    verification.errorMessage ?? 'Email domain does not exist or has no active mail server.',
+                    style: AppTypography.inter(fontSize: 13, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _isVerifyingEmail = false);
+    }
 
     final success = auth.isSignInMode
         ? await auth.signIn(_emailController.text, _passwordController.text)
@@ -343,8 +380,8 @@ class _AuthScreenState extends State<AuthScreen>
                 // Email field
                 _buildInputField(
                   controller: _emailController,
-                  label: 'Work Email',
-                  hint: 'admin@institution.edu',
+                  label: 'Email Address',
+                  hint: 'user@gmail.com, yahoo.com, or institution.edu',
                   icon: CupertinoIcons.mail_solid,
                   keyboardType: TextInputType.emailAddress,
                   validator: (val) {
@@ -392,10 +429,12 @@ class _AuthScreenState extends State<AuthScreen>
 
                 // Primary Action Button
                 _buildActionButton(
-                  isLoading: auth.isLoading,
-                  title: auth.isSignInMode
-                      ? 'Authenticate into Studio'
-                      : 'Create Administrator Account',
+                  isLoading: auth.isLoading || _isVerifyingEmail,
+                  title: _isVerifyingEmail
+                      ? 'Verifying Real Mail Server...'
+                      : (auth.isSignInMode
+                          ? 'Sign In to Studio'
+                          : 'Create Account'),
                   onPressed: () => _submit(auth),
                 ),
               ],

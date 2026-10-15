@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:genai_asc_timetable/models/timetable_models.dart';
 import 'package:genai_asc_timetable/services/algorithmic_csp_solver.dart';
 import 'package:genai_asc_timetable/services/asc_xml_service.dart';
+import 'package:genai_asc_timetable/services/email_verification_service.dart';
 
 void main() {
   test('aSc Timetables XML export & parse unit test', () {
@@ -79,5 +80,24 @@ void main() {
     expect(solution.placements.isNotEmpty, isTrue);
     expect(solution.fitnessScore, greaterThanOrEqualTo(70.0));
     expect(solution.executionTimeMs, lessThan(1000), reason: 'CSP must execute in sub-second time');
+  });
+
+  test('EmailVerificationService rejects invalid syntax and disposable domains', () async {
+    // 1. Invalid syntax
+    final invalidSyntax = await EmailVerificationService.verifyEmail('invalid-email-address');
+    expect(invalidSyntax.isValid, isFalse);
+
+    // 2. Disposable domain
+    final disposable = await EmailVerificationService.verifyEmail('test@mailinator.com');
+    expect(disposable.isValid, isFalse);
+
+    // 3. Real domain with active MX
+    final realEmail = await EmailVerificationService.verifyEmail('admin@gmail.com');
+    expect(realEmail.isValid, isTrue);
+    expect(realEmail.domain, equals('gmail.com'));
+
+    // 4. Fake non-existent domain
+    final fakeDomain = await EmailVerificationService.verifyEmail('user@fakedomain99999xyznotreal.com');
+    expect(fakeDomain.isValid, isFalse);
   });
 }
